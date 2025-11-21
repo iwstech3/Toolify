@@ -1,3 +1,4 @@
 .env
 toolify_env
 __pycache__
+audio/
