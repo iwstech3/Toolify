@@ -31,12 +31,13 @@ class ToolResearchResponse(BaseModel):
     query: str
     results: List[ResearchResult]
     youtube_links: List[YouTubeLink]
-    research_context: str  # Context text to pass to Gemini
+    research_context: str  
+    structured_context: Optional[dict] = None 
     timestamp: datetime
-    manual_generation_payload: Optional[dict] = None  # Ready-to-use payload for manual generation
+    manual_generation_payload: Optional[dict] = None 
 
 
-# Keep your existing schemas as well
+
 class ResearchRequest(BaseModel):
     """Original research request model"""
     query: str
@@ -58,6 +59,7 @@ class ManualGenerationRequest(BaseModel):
     research_context: str = Field(..., description="Research data from Tavily")
     tool_description: Optional[str] = Field(None, description="Optional description from Google Vision")
     language: str = Field(default="en", description="Language for the manual")
+    generate_audio: bool = Field(default=False, description="Whether to generate audio file")
 
 
 class ManualGenerationResponse(BaseModel):
@@ -65,4 +67,5 @@ class ManualGenerationResponse(BaseModel):
     tool_name: str
     manual: str
     summary: str
+    audio_file: Optional[str] = None 
     timestamp: datetime
