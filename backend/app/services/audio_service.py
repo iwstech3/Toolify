@@ -7,7 +7,7 @@ class AudioService:
     """Simple service for generating audio from text using gTTS"""
     
     def __init__(self):
-        # Create audio directory if it doesn't exist
+        #, Create audio directory if it doesn't exist
         if not os.path.exists("audio"):
             os.makedirs("audio")
     
