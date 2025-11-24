@@ -57,4 +57,5 @@ class AudioService:
         except Exception as e:
             raise Exception(f"Summary audio error: {str(e)}")
 
+audio_service = AudioService()
 
