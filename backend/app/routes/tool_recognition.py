@@ -3,7 +3,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List
 
-from app.services.tool_recognition_service import recognize_tools_in_image
+from backend.app.services.vision_service import recognize_tools_in_image
 
 router = APIRouter(prefix="/api", tags=["Tool Recognition"])
 
