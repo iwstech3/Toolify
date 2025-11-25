@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from app.model.schemas import ToolResearchResponse
-from app.services.research_service import perform_tool_research
+from app.services.tavily_service import perform_tool_research
 from app.services.vision_service import recognize_tools_in_image
 
 router = APIRouter(prefix="/api", tags=["Tool Recognition"])
