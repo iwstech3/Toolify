@@ -6,7 +6,7 @@ class TavilyService:
     def __init__(self):
         self.client = TavilyClient(api_key=settings.tavily_api_key)
 
-    def search_tool_info(self, query: str, max_results: int = 5):
+    def search_tool_info(self, query: str, max_results: int):
         try:
             response = self.client.search(
                 query=f"{query} tool usage guide tutorial",
@@ -27,7 +27,7 @@ class TavilyService:
         except Exception as e:
             raise Exception(f"Tool search error: {str(e)}")
 
-    def search_youtube_tutorials(self, query: str, max_results: int = 5):
+    def search_youtube_tutorials(self, query: str, max_results: int):
         try:
             response = self.client.search(
                 query=f"{query} how to use tutorial",
@@ -39,15 +39,22 @@ class TavilyService:
         except Exception as e:
             raise Exception(f"YouTube search error: {str(e)}")
 
-    def format_results(self, raw_results):
+    def format_results(self, raw_results, tool_name=None, youtube_only=False):
         formatted = []
         for result in raw_results.get("results", []):
-            formatted.append({
-                "title": result.get("title", "Untitled"),
-                "url": result.get("url", ""),
-                "content": result.get("content", "")[:500],
-                "score": result.get("score", 0.0)
-            })
+            score = result.get("score", 0.0)
+            title = result.get("title", "Untitled")
+            # For YouTube results, filter by tool_name in title (case-insensitive)
+            if youtube_only and tool_name:
+                if tool_name.lower() not in title.lower():
+                    continue
+            if score >= 0.75:
+                formatted.append({
+                    "title": title,
+                    "url": result.get("url", ""),
+                    "content": result.get("content", "")[:500],
+                    "score": score
+                })
         return formatted
 
 
