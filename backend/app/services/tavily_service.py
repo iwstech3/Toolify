@@ -6,7 +6,7 @@ class TavilyService:
     def __init__(self):
         self.client = TavilyClient(api_key=settings.tavily_api_key)
 
-    def search_tool_info(self, query: str, max_results: int = 10):
+    def search_tool_info(self, query: str, max_results: int = 5):
         try:
             response = self.client.search(
                 query=f"{query} tool usage guide tutorial",
