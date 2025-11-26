@@ -15,6 +15,8 @@ class YouTubeLink(BaseModel):
     """YouTube tutorial link"""
     title: str
     url: str
+    content: str
+    score: float = Field(default=0.0, description="Relevance score of the YouTube link")
 
 
 class ResearchResult(BaseModel):
@@ -29,12 +31,9 @@ class ToolResearchResponse(BaseModel):
     """Response model for tool research"""
     tool_name: str
     query: str
-    results: List[ResearchResult]
-    youtube_links: List[YouTubeLink]
-    research_context: str  
-    structured_context: Optional[dict] = None 
+    research_results: List[ResearchResult]
+    youtube_info: List[YouTubeLink]
     timestamp: datetime
-    manual_generation_payload: Optional[dict] = None 
 
 
 
@@ -69,3 +68,16 @@ class ManualGenerationResponse(BaseModel):
     summary: str
     audio_file: Optional[str] = None 
     timestamp: datetime
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    content: str
+    timestamp: datetime
+    language: str
+
+class LLMStructuredOutput(BaseModel):
+    language: str = Field(description="The language of the response, chosen from en, fr, or pdg.")
+    response: str = Field(description="The content of the response in the identified language.")

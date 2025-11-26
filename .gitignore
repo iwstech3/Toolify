@@ -1,5 +1,5 @@
 .env
 toolify_env
 *.pyc
-__pycache__/*
+__pycache__
 audio/
