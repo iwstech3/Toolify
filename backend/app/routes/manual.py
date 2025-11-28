@@ -14,7 +14,7 @@ async def generate_tool_manual(request: ManualGenerationRequest):
     """
     Generate a comprehensive tool manual with audio
     """
-    try:
+    try: 
         # Generate manual
         manual = tool_manual_chain.generate_manual(
             tool_name=request.tool_name,
