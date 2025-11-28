@@ -1,20 +1,22 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Form, UploadFile, Depends
+from fastapi import APIRouter, HTTPException, Form, UploadFile, Depends, File
 from datetime import datetime
 from typing import Optional
 from app.model.schemas import ChatResponse
 from app.chains.chat_chain import _chat_chain
 from app.services.vision_service import describe_image, recognize_tools_in_image
 from app.services.tavily_service import perform_tool_research
+from app.services.audio_service import audio_service
 from app.dependencies import optional_image_file_validator
 
 router = APIRouter(prefix="/api", tags=["Chat"])
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
-    message: str = Form(...),
+    message: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
-    file: Optional[UploadFile] = Depends(optional_image_file_validator)
+    file: Optional[UploadFile] = Depends(optional_image_file_validator),
+    voice: Optional[UploadFile] = File(None)
 ):
     """
     A multi-turn chat endpoint to converse with the Gemini AI assistant.
@@ -26,6 +28,20 @@ async def chat(
     try:
         if not session_id:
             session_id = str(uuid.uuid4())
+
+        # Handle voice input
+        if voice:
+            voice_bytes = await voice.read()
+            if voice_bytes:
+                transcribed_text = audio_service.transcribe_audio(voice_bytes, mime_type=voice.content_type or "audio/mp3")
+                if transcribed_text:
+                    if message:
+                        message += f"\n[Voice Input]: {transcribed_text}"
+                    else:
+                        message = transcribed_text
+
+        if not message:
+            raise HTTPException(status_code=400, detail="Message or voice input is required")
 
         full_message = message
         if file:
