@@ -7,6 +7,7 @@ import os
 from functools import lru_cache
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
+from supabase import create_client, Client
 
 # Load variables from .env file into environment
 load_dotenv()
@@ -18,6 +19,8 @@ class Settings:
     # API Keys
     google_api_key: str = os.getenv("GOOGLE_API_KEY")
     tavily_api_key: str = os.getenv("TAVILY_API_KEY", "DUMMY_TAVILY_KEY")
+    supabase_url: str = os.environ.get("SUPABASE_URL")
+    supabase_key: str = os.environ.get("SUPABASE_SERVICE_KEY")
 
     # Server settings
     host: str = os.getenv("HOST", "0.0.0.0")
@@ -50,7 +53,6 @@ def load_google_llm():
         google_api_key=settings.google_api_key,
         temperature=settings.temperature,
         max_output_tokens=settings.max_tokens,
-        convert_system_message_to_human=True,
     )
 
 
@@ -64,5 +66,7 @@ def load_google_vision_llm():
         google_api_key=settings.google_api_key,
         temperature=0.5,
         max_output_tokens=settings.max_tokens,
-        convert_system_message_to_human=True,
     )
+
+# Supabase Client Initialization
+supabase: Client = create_client(settings.supabase_url, settings.supabase_key) if settings.supabase_url and settings.supabase_key else None

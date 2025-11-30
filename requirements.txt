@@ -12,3 +12,5 @@ langchain
 langchain-core
 langchain-google-genai
 langchain-community
+supabase
+langsmith

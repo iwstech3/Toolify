@@ -1,4 +1,5 @@
 import uuid
+import json
 from fastapi import APIRouter, HTTPException, Form, UploadFile, Depends, File
 from datetime import datetime
 from typing import Optional
@@ -7,7 +8,16 @@ from app.chains.chat_chain import _chat_chain
 from app.services.vision_service import describe_image, recognize_tools_in_image
 from app.services.tavily_service import perform_tool_research
 from app.services.audio_service import audio_service
-from app.dependencies import optional_image_file_validator
+from app.dependencies import optional_image_file_validator, get_current_user
+from app.config import supabase
+
+try:
+    from langsmith import uuid7
+except ImportError:
+    # Fallback if langsmith not installed
+    import uuid as uuid_module
+    def uuid7():
+        return str(uuid_module.uuid4())
 
 router = APIRouter(prefix="/api", tags=["Chat"])
 
@@ -16,7 +26,8 @@ async def chat(
     message: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
     file: Optional[UploadFile] = Depends(optional_image_file_validator),
-    voice: Optional[UploadFile] = File(None)
+    voice: Optional[UploadFile] = File(None),
+    user: dict = Depends(get_current_user)
 ):
     """
     A multi-turn chat endpoint to converse with the Gemini AI assistant.
@@ -26,9 +37,19 @@ async def chat(
     If session_id is not provided, a new one is generated and returned.
     """
     try:
-        if not session_id:
-            session_id = str(uuid.uuid4())
-
+        # Validate and set chat_id
+        chat_id = None
+        if session_id and session_id.strip():
+            # Only use session_id if it looks like a UUID
+            # UUIDs are 36 characters with dashes or 32 without
+            if len(session_id.replace('-', '')) == 32:
+                chat_id = session_id
+            else:
+                # Invalid session_id, will create a new chat
+                chat_id = None
+        
+        scan_id = None
+        
         # Handle voice input
         if voice:
             voice_bytes = await voice.read()
@@ -44,9 +65,25 @@ async def chat(
             raise HTTPException(status_code=400, detail="Message or voice input is required")
 
         full_message = message
+        
+        # Handle Image Upload & Recognition
         if file:
             image_bytes = await file.read()
             if image_bytes:
+                # Upload image to Supabase
+                file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+                file_path = f"{user.id}/{uuid.uuid4()}.{file_ext}"
+                try:
+                    supabase.storage.from_("tool-images").upload(
+                        file=image_bytes,
+                        path=file_path,
+                        file_options={"content-type": file.content_type}
+                    )
+                except Exception as e:
+                    print(f"Failed to upload image: {e}")
+                    # Proceed without saving scan if upload fails? 
+                    # We'll just log it for now.
+
                 # First try to recognize a tool
                 tool_name = recognize_tools_in_image(image_bytes)
                 
@@ -54,6 +91,20 @@ async def chat(
                     # If tool found, research it
                     research_response = perform_tool_research(tool_name)
                     
+                    # Save Scan
+                    scan_data = {
+                        "user_id": str(user.id),
+                        "image_path": file_path,
+                        "tool_name": tool_name,
+                        "analysis_result": research_results.model_dump(mode='json') if 'research_results' in locals() else None, # Wait, research_response is the object
+                    }
+                    # Fix: research_response is the Pydantic model
+                    scan_data["analysis_result"] = research_response.model_dump(mode='json')
+                    
+                    scan_res = supabase.table("scans").insert(scan_data).execute()
+                    if scan_res.data:
+                        scan_id = scan_res.data[0]['id']
+
                     # Format research for the LLM
                     research_text = f"Tool Identified: {tool_name}\n\nResearch Results:\n"
                     for res in research_response.research_results[:3]:
@@ -73,15 +124,46 @@ async def chat(
                             f"The user's message is: '{message}'"
                         )
 
+        # Create Chat Session if needed
+        if not chat_id:
+            # Generate UUID v7 for new chat sessions (LangSmith compatible)
+            new_chat_id = str(uuid7())
+            
+            chat_data = {
+                "id": new_chat_id,  # Explicitly set the ID
+                "user_id": str(user.id),
+                "title": message[:50] + "..." if message else "New Chat",
+                "scan_id": str(scan_id) if scan_id else None
+            }
+            chat_res = supabase.table("chats").insert(chat_data).execute()
+            if chat_res.data:
+                chat_id = chat_res.data[0]['id']
+        
+        # Save User Message
+        supabase.table("messages").insert({
+            "chat_id": str(chat_id) if chat_id else None,
+            "role": "user",
+            "content": message # Save original message, not full_message with context
+        }).execute()
+
+        # Invoke LLM
         # invoke_chat now returns a Pydantic object (LLMStructuredOutput)
-        structured_response = await _chat_chain.invoke_chat(full_message, session_id)
+        structured_response = await _chat_chain.invoke_chat(full_message, chat_id) # Pass chat_id as session_id
+
+        # Save Assistant Message
+        supabase.table("messages").insert({
+            "chat_id": str(chat_id) if chat_id else None,
+            "role": "assistant",
+            "content": structured_response.response
+        }).execute()
 
         return ChatResponse(
             content=structured_response.response,
             language=structured_response.language,
             timestamp=datetime.now(),
-            session_id=session_id
+            session_id=chat_id
         )
 
     except Exception as e:
+        print(f"Chat Error: {e}")
         raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")

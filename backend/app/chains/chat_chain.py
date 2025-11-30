@@ -21,7 +21,7 @@ class ChatChain:
         self.llm = load_google_llm()
         self.parser = PydanticOutputParser(pydantic_object=LLMStructuredOutput)
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", """You are the Gemini LLM, a helpful assistant from Google who is an expert on a wide variety of tools.
+            ("system", """You are Toolify Assistant, a helpful assistant who is an expert on a wide variety of tools.
 Your task is to identify the language of the user's question and respond in that same language.
 You must support the following languages: English (en), French (fr), and Nigerian Pidgin (pdg).
 

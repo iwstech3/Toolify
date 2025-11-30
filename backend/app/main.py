@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import manual, tool_recognition, chat
+from app.routes import manual, tool_recognition, chat, auth
 
 # Create FastAPI app
 app = FastAPI(
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(manual.router)
 app.include_router(tool_recognition.router)
 app.include_router(chat.router)
+app.include_router(auth.router)
 
 # Health check endpoint
 @app.get("/")
