@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: Toolify API
+    env: python
+    # Source configuration for automatic deployments
+    repo: https://github.com/abimmost/Toolify-abimmost.git
+    branch: main # Update to your branch name
+    region: frankfurt # Default: oregon
+    autoDeployTrigger: "off" # Disable automatic deploys (commit|checksPass|off)
+
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    plan: free
+
+    # 🚨 SECURE CONFIGURATION: Only list the KEYS here 🚨
+    envVars:
+      # API Keys - Set values in Render Dashboard
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+
+      # Supabase Configuration
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+
+      # CORS Configuration
+      - key: CORS_ORIGINS
+        value: "https://*.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
+
+      # AI Model Settings
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
+      - key: TEMPERATURE
+        value: "0.7"
+      - key: MAX_TOKENS
+        value: "2048"
+
+      # Server Settings (optional)
+      - key: HOST
+        value: "0.0.0.0"
+      # PORT is automatically set by Render, no need to define it
