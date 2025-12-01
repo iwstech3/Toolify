@@ -7,7 +7,7 @@ from typing import Optional
 class TavilyService:
     def __init__(self):
         self.client = TavilyClient(api_key=settings.tavily_api_key)
-
+    
     def search_tool_info(self, query: str, max_results: int):
         try:
             response = self.client.search(
@@ -28,7 +28,7 @@ class TavilyService:
             return response
         except Exception as e:
             raise Exception(f"Tool search error: {str(e)}")
-
+    
     def search_youtube_tutorials(self, query: str, max_results: int):
         try:
             response = self.client.search(
@@ -40,27 +40,32 @@ class TavilyService:
             return response
         except Exception as e:
             raise Exception(f"YouTube search error: {str(e)}")
-
-    def format_results(self, raw_results, tool_name=None, youtube_only=False):
+    
+    def format_results(self, raw_results, tool_name=None, youtube_only=False, score_threshold=0.1):
         formatted = []
-        for result in raw_results.get("results", []):
+        results_list = raw_results.get("results", [])
+        
+        for result in results_list:
             score = result.get("score", 0.0)
             title = result.get("title", "Untitled")
+            url = result.get("url", "")
+            
             # For YouTube results, filter by tool_name in title (case-insensitive)
             if youtube_only and tool_name:
                 if tool_name.lower() not in title.lower():
                     continue
-            if score >= 0.75:
+            
+            if score >= score_threshold:
                 formatted.append({
                     "title": title,
-                    "url": result.get("url", ""),
-                    "content": result.get("content", "")[:500],
+                    "url": url,
+                    "content": result.get("content", ""),
                     "score": score
                 })
+        
         return formatted
 
 tavily_service = TavilyService()
-
 
 def perform_tool_research(
     tool_name: str,
@@ -84,7 +89,12 @@ def perform_tool_research(
     )
     
     formatted_general = tavily_service.format_results(raw_results)
-    formatted_youtube = tavily_service.format_results(raw_results=youtube_results, tool_name=tool_name, youtube_only=True)
+    formatted_youtube = tavily_service.format_results(
+        raw_results=youtube_results, 
+        tool_name=tool_name, 
+        youtube_only=True,
+        score_threshold=0.5  # Lower threshold for YouTube videos
+    )
     
     youtube_links = [
         YouTubeLink(title=r["title"], url=r["url"], content=r['content'], score=r.get("score", 0.0))
