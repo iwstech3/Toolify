@@ -51,9 +51,9 @@ class TavilyService:
             url = result.get("url", "")
             
             # For YouTube results, filter by tool_name in title (case-insensitive)
-            if youtube_only and tool_name:
-                if tool_name.lower() not in title.lower():
-                    continue
+            # if youtube_only and tool_name:
+            #     if tool_name.lower() not in title.lower():
+            #         continue
             
             if score >= score_threshold:
                 formatted.append({

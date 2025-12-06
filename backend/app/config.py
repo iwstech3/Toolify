@@ -69,4 +69,4 @@ def load_google_vision_llm():
     )
 
 # Supabase Client Initialization
-supabase: Client = create_client(settings.supabase_url, settings.supabase_key) if settings.supabase_url and settings.supabase_key else None
+supabase: Client = create_client(settings.supabase_url, settings.supabase_key)
