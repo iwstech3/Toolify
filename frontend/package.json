@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.5",
+    "@clerk/nextjs": "^6.36.1",
     "@clerk/shared": "^3.38.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.556.0",
