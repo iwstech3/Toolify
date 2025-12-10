@@ -1,3 +1,4 @@
+
 import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
@@ -38,6 +39,7 @@ export default function SignInPage() {
           routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
+          forceRedirectUrl="/chat"
         />
       </div>
     </div>
