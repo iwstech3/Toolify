@@ -1,11 +1,49 @@
 "use client";
 
 import { ChatInput } from "./ChatInput";
-import { Wrench } from "lucide-react";
+import { Wrench, User } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useState, useRef, useEffect } from "react";
+
+interface Message {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+}
 
 export function ChatInterface() {
     const { user, isLoaded } = useUser();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const handleSendMessage = (content: string) => {
+        // Add user message
+        const userMessage: Message = {
+            id: Date.now().toString(),
+            role: "user",
+            content
+        };
+
+        setMessages(prev => [...prev, userMessage]);
+
+        // Simulate AI response
+        setTimeout(() => {
+            const aiMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "assistant",
+                content: "I'm processing your request regarding: " + content
+            };
+            setMessages(prev => [...prev, aiMessage]);
+        }, 1000);
+    };
 
     return (
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-background">
@@ -18,20 +56,48 @@ export function ChatInterface() {
             </header>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-5xl mx-auto">
-                <div className="flex flex-col items-center gap-8 w-full">
+            <div className="flex-1 flex flex-col items-center justify-center p-4 w-full max-w-5xl mx-auto overflow-hidden">
+                <div className="flex flex-col w-full h-full relative">
 
-                    {/* Logo / Welcome */}
-                    <div className="flex flex-col items-center gap-6 animate-fade-in">
-                        {/* Box removed as requested */}
-                        <h1 className="text-3xl md:text-4xl font-semibold text-center text-balance bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent pb-1">
-                            Hey {isLoaded && user?.firstName ? user.firstName : "Human"}, {getGreeting()} how can I assist you?
-                        </h1>
+                    {/* Chat Messages Area */}
+                    <div className="flex-1 overflow-y-auto w-full px-4 py-4 space-y-6 scrollbar-hide">
+                        {messages.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-8 animate-fade-in">
+                                {/* Logo / Welcome - Only shown when no messages */}
+                                <div className="flex flex-col items-center gap-6">
+                                    <h1 className="text-3xl md:text-4xl font-semibold text-center text-balance bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent pb-1">
+                                        Hey {isLoaded && user?.firstName ? user.firstName : "Human"}, {getGreeting()} how can I assist you?
+                                    </h1>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto pb-4">
+                                {messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`flex w-full ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div className={`flex gap-4 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+
+
+                                            {/* Content Box */}
+                                            <div className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${message.role === 'user'
+                                                ? 'bg-card border border-orange-500 text-foreground shadow-sm'
+                                                : 'bg-transparent text-foreground/90'
+                                                }`}>
+                                                {message.content}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        )}
                     </div>
 
                     {/* Input Area */}
-                    <div className="w-full animate-slide-down">
-                        <ChatInput />
+                    <div className="w-full shrink-0 pb-6 pt-2 bg-gradient-to-t from-background via-background to-transparent z-10 px-4">
+                        <ChatInput onSend={handleSendMessage} />
                     </div>
 
                 </div>
