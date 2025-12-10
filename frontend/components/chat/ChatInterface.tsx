@@ -1,16 +1,19 @@
 "use client";
 
 import { ChatInput } from "./ChatInput";
-import { Zap } from "lucide-react";
+import { Wrench } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 export function ChatInterface() {
+    const { user, isLoaded } = useUser();
+
     return (
         <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-background">
             {/* Header/Model Selector */}
             <header className="absolute top-0 left-0 right-0 p-4 flex justify-center z-10">
                 <button className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-full shadow-sm hover:shadow-md transition-all text-sm font-medium hover:border-orange-500/30">
-                    <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
-                    <span>Slurk (Fast Mode)</span>
+                    <Wrench className="w-4 h-4 text-orange-500 fill-orange-500" />
+                    <span>Toolify</span>
                 </button>
             </header>
 
@@ -20,11 +23,9 @@ export function ChatInterface() {
 
                     {/* Logo / Welcome */}
                     <div className="flex flex-col items-center gap-6 animate-fade-in">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-indigo-500 flex items-center justify-center shadow-xl transform hover:rotate-6 transition-transform duration-500 cursor-pointer">
-                            <div className="w-8 h-8 border-4 border-white rounded-lg" />
-                        </div>
+                        {/* Box removed as requested */}
                         <h1 className="text-3xl md:text-4xl font-semibold text-center text-balance bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent pb-1">
-                            Hey Elfan, how can I assist you?
+                            Hey {isLoaded && user?.firstName ? user.firstName : "Human"}, how can I assist you?
                         </h1>
                     </div>
 

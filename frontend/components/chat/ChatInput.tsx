@@ -45,7 +45,7 @@ export function ChatInput() {
 
             {/* Suggested Topics */}
             <div className="flex flex-wrap justify-center gap-2 mt-6 animate-fade-in delay-100">
-                {["Coding", "Cooking", "Health", "Trip", "Troubleshoot"].map((topic) => (
+                {["Explain more", "How can I use it", "Precautions"].map((topic) => (
                     <button
                         key={topic}
                         className="px-4 py-2 rounded-full bg-muted/50 hover:bg-muted border border-border/50 hover:border-orange-500/50 text-xs text-muted-foreground hover:text-foreground transition-all duration-300"
