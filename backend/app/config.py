@@ -25,7 +25,7 @@ class Settings:
     # Server settings
     host: str = os.getenv("HOST", "0.0.0.0")
     port: int = int(os.getenv("PORT", 8000))
-    cors_origins: str = os.getenv("CORS_ORIGINS","http://localhost:3000")
+    cors_origins: str = os.getenv("CORS_ORIGINS","http://localhost:3000,https://toolify-two.vercel.app")
 
     # AI Model settings
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")

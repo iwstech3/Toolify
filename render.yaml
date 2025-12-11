@@ -6,7 +6,7 @@ services:
     repo: https://github.com/abimmost/Toolify-abimmost.git
     branch: main # Update to your branch name
     region: frankfurt # Default: oregon
-    autoDeployTrigger: "off" # Disable automatic deploys (commit|checksPass|off)
+    autoDeployTrigger: "commit" # Enable automatic deploys (commit|checksPass|off)
 
     buildCommand: "pip install -r requirements.txt"
     startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"

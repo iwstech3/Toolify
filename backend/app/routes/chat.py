@@ -2,7 +2,7 @@ import uuid
 import json
 from fastapi import APIRouter, HTTPException, Form, UploadFile, Depends, File
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.model.schemas import ChatResponse
 from app.chains.chat_chain import _chat_chain
 from app.services.vision_service import describe_image, recognize_tools_in_image
@@ -166,4 +166,41 @@ async def chat(
 
     except Exception as e:
         print(f"Chat Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
+
+@router.get("/chats")
+async def get_chats(user: dict = Depends(get_current_user)):
+    """Fetch all chats for the current user."""
+    try:
+        # Check if user.id is available, might be a string or property depending on Depends(get_current_user)
+        # Based on dependencies.py, it returns response.user which has .id
+        user_id = user.id
+        res = supabase.table("chats").select("*").eq("user_id", str(user_id)).order("created_at", desc=True).execute()
+        return res.data
+    except Exception as e:
+        print(f"Error fetching chats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/chats/{chat_id}/messages")
+async def get_chat_messages(chat_id: str, user: dict = Depends(get_current_user)):
+    """Fetch messages for a specific chat."""
+    try:
+        user_id = user.id
+        
+        # Verify ownership
+        # Note: .single() raises error if no row found, handle that
+        try:
+            chat_check = supabase.table("chats").select("user_id").eq("id", chat_id).single().execute()
+        except:
+             raise HTTPException(status_code=404, detail="Chat not found")
+             
+        if not chat_check.data or chat_check.data["user_id"] != str(user_id):
+            raise HTTPException(status_code=403, detail="Not authorized to view this chat")
+        
+        res = supabase.table("messages").select("*").eq("chat_id", chat_id).order("created_at", desc=False).execute()
+        return res.data
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

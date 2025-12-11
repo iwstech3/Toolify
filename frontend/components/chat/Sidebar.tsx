@@ -10,31 +10,29 @@ import {
   Info,
   type LucideIcon,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { ThemeToggle } from "../ThemeToggle";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
+import { Chat } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
-interface NavItem {
-  icon: LucideIcon;
-  label: string;
-  href: string;
-  active?: boolean;
+interface SidebarProps {
+  chats: Chat[];
+  currentChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  onNewChat: () => void;
 }
 
-const navItems: NavItem[] = [
-  { icon: Search, label: "Search", href: "#" },
-  { icon: MessageSquare, label: "Chats", href: "#", active: true },
-];
-
-export function Sidebar() {
+export function Sidebar({ chats, currentChatId, onSelectChat, onNewChat }: SidebarProps) {
   const [showAbout, setShowAbout] = useState(false);
   const { user } = useUser();
 
   return (
     <>
-      <aside className="w-20 hover:w-64 border-r border-border bg-card flex flex-col pt-6 pb-4 h-screen select-none z-20 transition-all duration-300 group overflow-hidden">
-        {/* Logo Area - Adjusted alignment to match list items (p-3) */}
+      <aside className="w-20 hover:w-64 border-r border-border bg-card flex flex-col pt-6 pb-4 h-screen select-none z-20 transition-all duration-300 group overflow-hidden absolute md:relative hover:shadow-2xl">
+        {/* Logo Area */}
         <div className="mb-8 w-full px-4">
           <div className="flex items-center p-3 rounded-xl transition-all">
             <div className="w-6 h-6 min-w-[1.5rem] flex items-center justify-center text-orange-500">
@@ -47,8 +45,11 @@ export function Sidebar() {
         </div>
 
         {/* New Chat Action */}
-        <div className="w-full px-4 mb-8">
-          <button className="w-full flex items-center justify-center group-hover:justify-start p-3 rounded-xl bg-muted hover:bg-muted/80 transition-all group/btn">
+        <div className="w-full px-4 mb-4">
+          <button
+            onClick={onNewChat}
+            className="w-full flex items-center justify-center group-hover:justify-start p-3 rounded-xl bg-muted hover:bg-muted/80 transition-all group/btn"
+          >
             <Plus className="w-6 h-6 min-w-[1.5rem] text-foreground group-hover/btn:scale-110 transition-transform" />
             <span className="ml-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
               New Chat
@@ -56,40 +57,53 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Main Navigation */}
-        <nav className="flex-1 flex flex-col gap-2 w-full px-4">
-          {navItems.map((item, index) => (
-            <Link
-              key={index}
-              href={item.href}
-              className={`flex items-center p-3 rounded-xl transition-all relative
-              ${
-                item.active
-                  ? "text-primary bg-primary/10"
+        {/* Separator */}
+        <div className="px-4 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">History</p>
+        </div>
+
+        {/* Chat History */}
+        <nav className="flex-1 flex flex-col gap-2 w-full px-4 overflow-y-auto scrollbar-hide">
+          {chats.map((chat) => (
+            <button
+              key={chat.id}
+              onClick={() => onSelectChat(chat.id)}
+              className={cn(
+                "flex items-center p-3 rounded-xl transition-all relative w-full",
+                currentChatId === chat.id
+                  ? "text-primary bg-primary/10 border-l-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
+              )}
             >
-              <item.icon className="w-6 h-6 min-w-[1.5rem]" />
-              <span className="ml-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden delay-100">
-                {item.label}
+              <MessageSquare className="w-6 h-6 min-w-[1.5rem]" />
+              <span className="ml-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden text-left truncate">
+                {chat.title || "New Chat"}
               </span>
-            </Link>
+            </button>
           ))}
 
-          {/* About Item */}
+          {chats.length === 0 && (
+            <div className="hidden group-hover:flex px-3 py-2 text-sm text-muted-foreground italic">
+              No history yet
+            </div>
+          )}
+        </nav>
+
+        {/* About Item */}
+        <div className="w-full px-4 mt-2">
           <button
             onClick={() => setShowAbout(true)}
-            className="flex items-center p-3 rounded-xl transition-all relative text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="w-full flex items-center p-3 rounded-xl transition-all relative text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <Info className="w-6 h-6 min-w-[1.5rem]" />
-            <span className="ml-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden delay-100">
+            <span className="ml-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
               About Toolify
             </span>
           </button>
-        </nav>
+        </div>
 
         {/* Bottom Actions */}
-        <div className="flex flex-col gap-2 items-center w-full px-4">
+        <div className="flex flex-col gap-2 items-center w-full px-4 mt-auto pt-4 border-t border-border">
           <div className="flex items-center justify-center group-hover:justify-start w-full">
             <ThemeToggle />
           </div>
@@ -101,7 +115,7 @@ export function Sidebar() {
           </button>
 
           {/* User Avatar */}
-          <div className="mt-auto w-full flex justify-center group-hover:justify-start p-3">
+          <div className="w-full flex justify-center group-hover:justify-start p-3">
             <div className="w-8 h-8 min-w-[2rem] flex items-center justify-center overflow-hidden rounded-full ring-2 ring-border">
               <UserButton
                 afterSignOutUrl="/"
