@@ -28,7 +28,7 @@ services:
 
       # CORS Configuration
       - key: CORS_ORIGINS
-        value: "https://*.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
+        value: "https://toolify-pi.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
 
       # AI Model Settings
       - key: GEMINI_MODEL
