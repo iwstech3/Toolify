@@ -12,7 +12,7 @@
     "@clerk/nextjs": "^6.36.1",
     "@clerk/shared": "^3.38.0",
     "@radix-ui/react-slot": "^1.2.4",
-    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/postcss": "^4.1.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.556.0",
