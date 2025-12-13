@@ -44,20 +44,20 @@ export function ChatInterface() {
 
     const loadChats = async () => {
         try {
-            const token = await getToken({ template: "supabase" }); // Use Supabase template if configured, otherwise standard
-            // Note: If backend expects raw Clerk token, just getToken().
-            // config.py uses supabase.auth.get_user(token). Supabase usually expects its own JWT or a standard one if configured.
-            // Assuming the backend verifies the token directly via Supabase Auth.
-
-            // If the user hasn't set up Supabase integration in Clerk, we might need a standard token.
-            // Let's try standard token first, or just getToken().
+            // Get Clerk token - try standard token first
             const authToken = await getToken();
-            if (authToken) {
-                const chatList = await api.getChats(authToken);
-                setChats(chatList);
+
+            if (!authToken) {
+                console.warn('⚠️ No auth token available');
+                return;
             }
+
+            const chatList = await api.getChats(authToken);
+            setChats(chatList);
         } catch (error) {
             console.error("Failed to load chats:", error);
+            // Don't show error to user for background chat loading
+            // Just log it for debugging
         }
     };
 
@@ -95,16 +95,17 @@ export function ChatInterface() {
 
         try {
             const token = await getToken();
-            if (!token) throw new Error("Not authenticated");
+            if (!token) {
+                throw new Error("Not authenticated. Please sign in.");
+            }
 
-            // If we have a currentChatId, use it. But backend creates new one if we don't pass session_id.
-            // However, we want to update the chat list if it's a new chat.
+            console.log('🔐 Using auth token for API request');
 
             const response = await api.sendMessage(
                 token,
                 content,
                 currentChatId || undefined,
-                files ? files[0] : null, // Handle single file for now or update API to array
+                files ? files[0] : null,
                 voice
             );
 
@@ -125,11 +126,21 @@ export function ChatInterface() {
 
         } catch (error) {
             console.error("Failed to send message:", error);
-            // Optional: Show error in UI
+
+            // Determine error message
+            let errorMessage = "Sorry, I encountered an error processing your request. Please try again.";
+
+            if (error instanceof api.APIError) {
+                errorMessage = error.message;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            // Show error in UI
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 role: "assistant",
-                content: "Sorry, I encountered an error processing your request. Please try again."
+                content: `⚠️ ${errorMessage}`
             }]);
         } finally {
             setIsLoading(false);
