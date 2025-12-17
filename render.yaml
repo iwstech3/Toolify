@@ -3,7 +3,7 @@ services:
     name: Toolify API
     env: python
     # Source configuration for automatic deployments
-    repo: https://github.com/abimmost/Toolify-abimmost.git
+    repo: https://github.com/iwstech3/Toolify.git
     branch: main # Update to your branch name
     region: frankfurt # Default: oregon
     autoDeployTrigger: "off" # Enable automatic deploys (commit|checksPass|off)
@@ -23,7 +23,7 @@ services:
       # Supabase Configuration
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_SERVICE_KEY
+      - key: SUPABASE_ANON_KEY
         sync: false
 
       # CORS Configuration
