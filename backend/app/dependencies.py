@@ -86,34 +86,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user_id = payload.get("sub")
         email = payload.get("email", "unknown")
 
-        # SYNC: Ensure user exists in public.profiles
-        # This is necessary because we are bypassing Supabase Auth's auto-creation
-        try:
-            # We use the SERVICE KEY client here because RLS might block checking/creating profiles
-            # if the user doesn't exist yet.
-            from app.config import supabase as admin_client
-            
-            # Check if profile exists
-            # We can't use .eq('id', user_id).single() easily without potentially throwing
-            # So we count.
-            res = admin_client.table("profiles").select("id", count="exact").eq("id", user_id).execute()
-            
-            if res.count == 0:
-                print(f"DEBUG: User {user_id} not found in profiles. Creating...")
-                # Profile table only has id, updated_at, full_name, avatar_url
-                # We don't have email column.
-                admin_client.table("profiles").insert({
-                    "id": user_id,
-                    # "email": email, # Column does not exist
-                    # We could add full_name if we had it, but for now just ID is enough
-                }).execute()
-                print(f"DEBUG: User {user_id} created in profiles.")
-                
-        except Exception as sync_err:
-            print(f"WARNING: Failed to sync user profile: {sync_err}")
-            # We don't raise here, we let the FK constraint fail if it must, 
-            # or maybe the user already exists and the check failed for another reason.
-
         # Clerk doesn't always put email in the JWT unless configured, but we need an ID
         return User(id=user_id, email=email)
 
