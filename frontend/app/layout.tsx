@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Plus_Jakarta_Sans, Roboto } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -42,15 +35,6 @@ export default function RootLayout({
         <body
           className={`${roboto.variable} ${plusJakartaSans.variable} font-sans antialiased`}
         >
-          <header>
-            <SignedOut>
-              <SignInButton />
-              <SignUpButton />
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-          </header>
           <Providers>{children}</Providers>
         </body>
       </html>
