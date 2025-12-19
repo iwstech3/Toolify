@@ -103,6 +103,14 @@ async def generate_tool_manual(
             research_context=final_research_context,
             language=language
         )
+
+        # Ensure summary and manual are never just empty or None
+        if not summary or len(summary.strip()) < 5:
+            summary = f"A summary for {final_tool_name} could not be generated at this time, but you can find details in the manual below."
+        
+        if not manual or len(manual.strip()) < 5:
+            manual = f"Detailed manual generation for {final_tool_name} failed. Please try again or provide more details."
+
         
         # 7. Generate Audio (Optional)
         audio_files_data = None
@@ -154,7 +162,18 @@ async def generate_tool_manual(
             "pdf_url": pdf_url
         }
         
-        supabase.table("manuals").insert(manual_data).execute()
+        try:
+            supabase.table("manuals").insert(manual_data).execute()
+        except Exception as e:
+            print(f"Database insertion failed (possibly missing pdf_url column?): {e}")
+            # Try once more without pdf_url if it failed
+            try:
+                del manual_data["pdf_url"]
+                supabase.table("manuals").insert(manual_data).execute()
+            except Exception as e2:
+                print(f"Fallback database insertion failed: {e2}")
+                # Still don't fail the whole request just because history saving failed
+                pass
 
         return ManualGenerationResponse(
             tool_name=final_tool_name,

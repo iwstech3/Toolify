@@ -177,10 +177,14 @@ def perform_tool_research(
     )
     
     youtube_query = f"{tool_name} how to use tutorial"
-    youtube_results = tavily_service.search_youtube_tutorials(
-        query=youtube_query,
-        max_results=3
-    )
+    try:
+        youtube_results = tavily_service.search_youtube_tutorials(
+            query=youtube_query,
+            max_results=3
+        )
+    except Exception as e:
+        print(f"YouTube search failed: {e}")
+        youtube_results = {"results": []}
     
     formatted_general = tavily_service.format_results(raw_results)
     formatted_youtube = tavily_service.format_results(

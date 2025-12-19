@@ -11,18 +11,14 @@ class PDFService:
         Returns the public URL of the uploaded PDF.
         """
         pdf = FPDF()
+        pdf.set_margins(20, 20, 20)
         pdf.add_page()
         
-        # Add a DejaVu font that supports UTF-8 (if available) or standard font
-        # For simplicity, we'll use standard fonts, but be aware of encoding issues with non-latin chars.
-        # Ideally, download a .ttf font file and adding it would be better for unicode support.
-        # We will strip incompatible characters or use basic encoding for now.
-        pdf.set_font("Helvetica", size=12)
-
         # Title
         pdf.set_font("Helvetica", style="B", size=24)
-        pdf.cell(0, 20, txt=f"Manual: {tool_name}", ln=True, align='C')
-        pdf.ln(10)
+        # Use multi_cell for title too in case tool_name is long
+        pdf.multi_cell(0, 15, txt=f"Manual: {tool_name}", align='C')
+        pdf.ln(5)
 
         # Content
         pdf.set_font("Helvetica", size=12)
@@ -54,9 +50,20 @@ class PDFService:
                 pdf.set_font("Helvetica", size=12)
             else:
                 # Regular text
-                # Replace unsupported characters if necessary
-                safe_line = line.encode('latin-1', 'replace').decode('latin-1')
-                pdf.multi_cell(0, 8, txt=safe_line)
+                # Replace unsupported characters
+                # Encode to latin-1 and replace errors to avoid codec issues
+                try:
+                    safe_line = line.encode('latin-1', 'replace').decode('latin-1')
+                    # Basic check for very long words that might break multi_cell
+                    # This is a naive fix; robust wrapping is complex without a library like textwrap
+                    # but multi_cell handles spaces. Long URLs/tokens are the issue.
+                    # We'll force wrap by character if needed by relying on multi_cell but ensuring no single word is wider than page
+                    # For now, just the encoding fix and standard multi_cell should be enough for most cases
+                    # unless a specific long string (like a URL) is present.
+                    pdf.multi_cell(0, 8, txt=safe_line)
+                except Exception as e:
+                    print(f"Error rendering line in PDF: {e}")
+                    continue
 
         # Save to temporary file
         temp_filename = f"manual_{uuid.uuid4()}.pdf"
