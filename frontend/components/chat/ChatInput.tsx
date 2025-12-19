@@ -16,43 +16,7 @@ export function ChatInput({ onSend, onGenerateManual, isLoading }: ChatInputProp
     const [inputValue, setInputValue] = useState("");
     const [showAttachMenu, setShowAttachMenu] = useState(false);
 
-    // ... (rest of state)
 
-    // ... (rest of functions)
-
-    return (
-        // ... (wrapper)
-        {/* Attach Menu Dropdown */ }
-                            {
-        showAttachMenu && (
-            <div className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-lg shadow-lg p-2 min-w-[180px] z-20 animate-in fade-in slide-in-from-bottom-2">
-                <button
-                    onClick={handleAttachClick}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
-                >
-                    <Paperclip className="w-4 h-4" />
-                    <span>Attach Files</span>
-                </button>
-                <button
-                    onClick={() => setShowAttachMenu(false)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
-                >
-                    <Globe className="w-4 h-4" />
-                    <span>Web Search</span>
-                </button>
-                <button
-                    onClick={() => {
-                        setShowAttachMenu(false);
-                        onGenerateManual?.();
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
-                >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Generate Manual</span>
-                </button>
-            </div>
-        )
-    }
 
     // File state
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -301,6 +265,16 @@ export function ChatInput({ onSend, onGenerateManual, isLoading }: ChatInputProp
                                     >
                                         <Globe className="w-4 h-4" />
                                         <span>Web Search</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowAttachMenu(false);
+                                            onGenerateManual?.();
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-sm"
+                                    >
+                                        <BookOpen className="w-4 h-4" />
+                                        <span>Generate Manual</span>
                                     </button>
                                 </div>
                             )}
