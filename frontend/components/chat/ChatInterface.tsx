@@ -1,7 +1,7 @@
 "use client";
 
 import { ChatInput } from "./ChatInput";
-import { Wrench, Menu, Volume2, VolumeX } from "lucide-react";
+import { Wrench, Menu, Volume2, VolumeX, MessageSquarePlus, X, PanelLeftClose, PanelLeft, Search, MessageSquare, Info, BookOpen, StopCircle } from "lucide-react"; // Import new icons
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
@@ -12,6 +12,12 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string; // For displaying uploaded images
+  audioUrl?: string; // For displaying sent audio
+}
+
+interface ManualMessage extends Message {
+  isManual?: boolean;
 }
 
 export function ChatInterface() {
@@ -26,6 +32,8 @@ export function ChatInterface() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // For mobile
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // For desktop
+  const [showAbout, setShowAbout] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -103,8 +111,20 @@ export function ChatInterface() {
     files?: File[],
     voice?: Blob
   ) => {
+    // Create image URL for preview if file exists
+    let imageUrl: string | undefined = undefined;
+    if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+      imageUrl = URL.createObjectURL(files[0]);
+    }
+
+    // Create audio URL for preview if voice exists
+    let audioUrl: string | undefined = undefined;
+    if (voice) {
+      audioUrl = URL.createObjectURL(voice);
+    }
+
     // Determine the actual message that will be sent
-    const messageToSend = content || (files && files.length > 0 ? "What is this tool?" : (voice ? "🎤 Audio Message" : ""));
+    const messageToSend = content || (files && files.length > 0 ? "What is this tool?" : "");
 
     // Optimistic UI update
     const tempId = Date.now().toString();
@@ -112,6 +132,8 @@ export function ChatInterface() {
       id: tempId,
       role: "user",
       content: messageToSend,
+      imageUrl,
+      audioUrl,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -256,8 +278,12 @@ export function ChatInterface() {
       {/* Sidebar (visible on desktop, hidden on mobile unless toggled) */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-30 transition-transform duration-300 md:relative md:translate-x-0 h-full",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          "fixed inset-y-0 left-0 z-30 transition-all duration-300 md:relative h-full",
+          // Mobile: slide in/out
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop: always visible but can be collapsed
+          "md:translate-x-0",
+          isSidebarCollapsed && "md:w-0 md:overflow-hidden"
         )}
       >
         <Sidebar
@@ -271,6 +297,10 @@ export function ChatInterface() {
             handleNewChat();
             setIsSidebarOpen(false);
           }}
+          onClose={() => setIsSidebarOpen(false)}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          isCollapsed={isSidebarCollapsed}
+          onShowAbout={() => setShowAbout(true)}
         />
       </div>
 
@@ -283,125 +313,219 @@ export function ChatInterface() {
       )}
 
       <div className="flex-1 flex flex-col h-full relative overflow-hidden w-full">
-        {/* Mobile Header */}
-        <header className="absolute top-0 left-0 right-0 p-3 sm:p-4 flex items-center justify-between md:justify-center z-10 pointer-events-none">
-          <button
-            className="md:hidden pointer-events-auto p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-card border border-border"
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open sidebar"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          {/* Centered Brand (only if no sidebar) - but sidebar has brand. 
-                        Let's keep the "Toolify" chip for context if needed, but redundant with sidebar. 
-                        Maybe keep it for consistent "Chat Mode" feel. 
-                    */}
-          <div className="pointer-events-auto">
-            <button className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-card border border-border rounded-full shadow-sm hover:shadow-md transition-all font-bold text-base sm:text-lg hover:border-orange-500/30">
-              <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 fill-orange-500" />
-              <span className="hidden xs:inline">Toolify</span>
+        {/* Header */}
+        <header className="absolute top-0 left-0 right-0 p-3 sm:p-4 flex items-center gap-3 z-10 pointer-events-none">
+          {/* Desktop Toggle Button */}
+          <header className="h-14 sm:h-16 border-b border-border flex items-center justify-between px-2 sm:px-4 absolute top-0 w-full bg-background/80 backdrop-blur-md z-10 md:hidden">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 hover:bg-muted rounded-lg"
+            >
+              <PanelLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-          </div>
-          <div className="w-11 md:hidden" /> {/* Spacer */}
-        </header>
+            <span className="font-semibold text-sm sm:text-base">Toolify</span>
+            <div className="w-9 sm:w-10" /> {/* Spacer for balance */}
+          </header>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 w-full max-w-5xl mx-auto overflow-hidden mt-14 sm:mt-16 md:mt-0">
-          <div className="flex flex-col w-full h-full relative">
-            {/* Chat Messages Area */}
-            <div className="flex-1 overflow-y-auto w-full px-2 sm:px-3 md:px-4 py-2 sm:py-3 md:py-4 space-y-3 sm:space-y-4 md:space-y-6 scrollbar-hide">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full gap-4 sm:gap-6 md:gap-8 animate-fade-in">
-                  {/* Logo / Welcome - Only shown when no messages */}
-                  <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6 px-3 sm:px-4">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-center text-balance bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent pb-1">
-                      Hey{" "}
-                      {isLoaded && user?.firstName ? user.firstName : "Human"},{" "}
-                      {getGreeting()} how can I assist you?
-                    </h1>
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 w-full max-w-5xl mx-auto overflow-hidden mt-14 sm:mt-16 md:mt-0">
+            <div className="flex flex-col w-full h-full relative">
+              {/* Chat Messages Area */}
+              <div className="flex-1 overflow-y-auto w-full px-2 sm:px-3 md:px-4 py-2 sm:py-3 md:py-4 space-y-3 sm:space-y-4 md:space-y-6 scrollbar-hide">
+                {messages.length === 0 ? (
+                  // Empty State with Greeting
+                  <div className="flex flex-col items-center justify-center h-full gap-4 sm:gap-6 md:gap-8 animate-fade-in">
+                    <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6 px-3 sm:px-4">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-orange-500 to-orange-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-orange-500/20 mb-2 sm:mb-4 animate-float">
+                        <Wrench className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                      </div>
+                      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-center text-balance bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent pb-1">
+                        Hey {isLoaded && user?.firstName ? user.firstName : "Human"}, {getGreeting()} how can I assist you?
+                      </h1>
+                      <p className="text-sm sm:text-base text-muted-foreground text-center max-w-md text-balance leading-relaxed">
+                        I can help you identify tools, provide usage manuals, and answer your technical questions.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 w-full max-w-3xl mx-auto pb-3 sm:pb-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex w-full ${message.role === "user"
-                        ? "justify-end"
-                        : "justify-start"
-                        }`}
-                    >
+                ) : (
+                  <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 w-full max-w-3xl mx-auto pb-3 sm:pb-4">
+                    {messages.map((message) => (
                       <div
-                        className={`flex gap-3 sm:gap-4 max-w-[95%] sm:max-w-[85%] ${message.role === "user"
-                          ? "flex-row-reverse"
-                          : "flex-row"
+                        key={message.id}
+                        className={`flex w-full ${message.role === "user"
+                          ? "justify-end"
+                          : "justify-start"
                           }`}
                       >
-                        {/* Content Box */}
-                        <div className="flex flex-col gap-2">
-                          <div
-                            className={`p-3 sm:p-4 rounded-2xl text-sm sm:text-base leading-relaxed ${message.role === "user"
-                              ? "bg-card border border-orange-500 text-foreground shadow-sm"
-                              : "bg-transparent text-foreground/90"
-                              }`}
-                          >
-                            {message.content}
+                        <div
+                          className={`flex gap-3 sm:gap-4 max-w-[95%] sm:max-w-[85%] ${message.role === "user"
+                            ? "flex-row-reverse"
+                            : "flex-row"
+                            }`}
+                        >
+                          {/* Avatar */}
+                          <div className={`mt-1 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs shrink-0 select-none ${message.role === "user"
+                            ? "bg-gradient-to-tr from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/20"
+                            : "bg-surface-2 border border-border text-foreground"
+                            }`}>
+                            {message.role === "user" ? (
+                              <span className="font-bold">You</span>
+                            ) : (
+                              <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                            )}
                           </div>
 
-                          {/* Audio button for AI messages */}
-                          {message.role === "assistant" && (
-                            <button
-                              onClick={() => handlePlayAudio(message.id!, message.content)}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all self-start ${playingMessageId === message.id
-                                ? "bg-orange-500/20 text-orange-500 hover:bg-orange-500/30"
-                                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                }`}
-                              title={playingMessageId === message.id ? "Stop audio" : "Play audio"}
-                            >
-                              {playingMessageId === message.id ? (
-                                <>
-                                  <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                  <span>Stop</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                  <span>Listen</span>
-                                </>
-                              )}
-                            </button>
-                          )}
+                          {/* Content Box */}
+                          <div className="flex flex-col gap-2">
+                            {/* Image Display */}
+                            {message.imageUrl && (
+                              <div className="rounded-xl overflow-hidden border border-border max-w-sm">
+                                <img src={message.imageUrl} alt="Uploaded content" className="w-full h-auto object-cover" />
+                              </div>
+                            )}
+
+                            {/* Audio Player (Sent Audio) */}
+                            {message.audioUrl && (
+                              <div className="p-3 bg-muted/50 rounded-xl border border-border">
+                                <audio controls src={message.audioUrl} className="w-full max-w-sm" style={{ height: '40px' }} />
+                              </div>
+                            )}
+
+                            {/* Text Content */}
+                            {message.content && (
+                              <div
+                                className={`p-3 sm:p-4 rounded-2xl text-sm sm:text-base leading-relaxed ${message.role === "user"
+                                  ? "bg-card border border-orange-500 text-foreground shadow-sm"
+                                  : "bg-transparent text-foreground/90"
+                                  }`}
+                              >
+                                <div className="markdown-content whitespace-pre-wrap">
+                                  {message.content}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Audio button for AI messages (YarnGPT) */}
+                            {message.role === "assistant" && (
+                              <button
+                                onClick={() => handlePlayAudio(message.id!, message.content)}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all self-start ${playingMessageId === message.id
+                                  ? "bg-orange-500/20 text-orange-500 hover:bg-orange-500/30"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                  }`}
+                                title={playingMessageId === message.id ? "Stop audio" : "Play audio (YarnGPT)"}
+                              >
+                                {playingMessageId === message.id ? (
+                                  <>
+                                    <StopCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <span>Stop</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <span>Listen</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex w-full justify-start">
-                      <div className="flex items-center gap-2 text-muted-foreground p-3 sm:p-4">
-                        <span className="animate-pulse text-sm sm:text-base">Thinking...</span>
+                    ))}
+                    {isLoading && (
+                      <div className="flex w-full justify-start">
+                        <div className="flex items-center gap-2 text-muted-foreground p-3 sm:p-4">
+                          <span className="animate-pulse text-sm sm:text-base">Thinking...</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="w-full shrink-0 pb-3 sm:pb-4 md:pb-6 pt-2 bg-gradient-to-t from-background via-background to-transparent z-10 px-2 sm:px-3 md:px-4">
+                <ChatInput
+                  onSend={handleSendMessage}
+                  isLoading={isLoading}
+                  onGenerateManual={handleGenerateManual}
+                />
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+
+      {/* About Modal - Rendered at root level to avoid z-index/overflow issues */ }
+  {
+    showAbout && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4">
+        <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border p-4 sm:p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+          <button
+            onClick={() => setShowAbout(false)}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+          </button>
+
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4 border-b border-border pb-4 sm:pb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                <Wrench className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold">About Toolify</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  AI-Powered Tool Assistant
+                </p>
+              </div>
             </div>
 
-            {/* Input Area */}
-            <div className="w-full shrink-0 pb-3 sm:pb-4 md:pb-6 pt-2 bg-gradient-to-t from-background via-background to-transparent z-10 px-2 sm:px-3 md:px-4">
-              <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+            <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-foreground/90 leading-relaxed">
+              <p>
+                <strong>Toolify</strong> is your intelligent companion for
+                understanding and mastering tools. Whether you&apos;re dealing
+                with software utilities, mechanical instruments, or complex
+                machinery, Toolify leverages advanced AI to provide instant,
+                accurate assistance.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+                <div className="p-3 sm:p-4 rounded-xl bg-muted/50 border border-border/50">
+                  <h3 className="font-semibold mb-1.5 sm:mb-2 flex items-center gap-2 text-sm sm:text-base">
+                    <Search className="w-4 h-4 text-orange-500" />
+                    Smart Recognition
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Instantly identify tools and equipment through
+                    descriptions or images.
+                  </p>
+                </div>
+                <div className="p-3 sm:p-4 rounded-xl bg-muted/50 border border-border/50">
+                  <h3 className="font-semibold mb-1.5 sm:mb-2 flex items-center gap-2 text-sm sm:text-base">
+                    <MessageSquare className="w-4 h-4 text-orange-500" />
+                    Interactive Guide
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Get step-by-step usage instructions, safety precautions,
+                    and maintenance tips.
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-2 text-sm text-muted-foreground border-t border-border pt-4">
+                Version 1.0.0 • Developed by Smartech Team
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Footer / Disclaimer */}
-        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 animate-fade-in delay-200 hidden md:block">
-          <button className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-orange-500 transition-colors" aria-label="Help">
-            ?
-          </button>
-        </div>
       </div>
-    </div>
+    )
+  }
+    </div >
   );
 }
 
