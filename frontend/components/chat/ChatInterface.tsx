@@ -363,6 +363,20 @@ export function ChatInterface() {
         />
       )}
 
+      {/* Expand Sidebar Button (Desktop only, when collapsed) */}
+      <div className={cn(
+        "absolute top-4 left-4 z-20 hidden md:block transition-opacity duration-300",
+        isSidebarCollapsed ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      )}>
+        <button
+          onClick={() => setIsSidebarCollapsed(false)}
+          className="p-2 bg-card border border-border rounded-lg shadow-sm hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+          title="Expand Sidebar"
+        >
+          <PanelLeft className="w-5 h-5" />
+        </button>
+      </div>
+
       <div className="flex-1 flex flex-col h-full relative overflow-hidden w-full">
         {/* Header */}
         <header className="h-14 sm:h-16 border-b border-border flex items-center justify-between px-2 sm:px-4 absolute top-0 w-full bg-background/80 backdrop-blur-md z-10 md:hidden">
