@@ -7,8 +7,10 @@ import {
     Square,
     X,
     Send,
-    Plus,
     BookOpen,
+    Image as ImageIcon,
+    Circle,
+    CircleDot,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 
@@ -25,7 +27,7 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
     const [isRecording, setIsRecording] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [inputValue, setInputValue] = useState("");
-    const [showAttachMenu, setShowAttachMenu] = useState(false);
+    const [isManualMode, setIsManualMode] = useState(false);
 
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -87,6 +89,19 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
             return;
         }
 
+        if (isManualMode && onGenerateManual) {
+            // Manual Generation Mode
+            onGenerateManual(selectedFiles);
+
+            // Clear state
+            setInputValue("");
+            if (textareaRef.current) textareaRef.current.value = "";
+            setSelectedFiles([]);
+            setImagePreviews([]);
+            setAudioChunks([]);
+            return;
+        }
+
         if (onSend) {
             // If we have audio chunks, create blob
             let audioBlob: Blob | undefined = undefined;
@@ -108,7 +123,6 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
 
     const handleAttachClick = () => {
         fileInputRef.current?.click();
-        setShowAttachMenu(false);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +188,7 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
     };
 
     // Determine which button to show
-    const showSendButton = inputValue.trim().length > 0 || audioChunks.length > 0;
+    const showSendButton = inputValue.trim().length > 0 || audioChunks.length > 0 || selectedFiles.length > 0 || isManualMode;
 
     return (
         <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-0">
@@ -247,16 +261,35 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
                         className="w-full bg-transparent p-3 sm:p-4 min-h-[56px] sm:min-h-[60px] max-h-[180px] sm:max-h-[200px] resize-none focus:outline-none text-sm sm:text-base text-foreground placeholder:text-muted-foreground disabled:opacity-50"
                     />
 
-                    <div className="flex items-center justify-between px-3 sm:px-4 pb-3 sm:pb-4">
-                        {/* Left Actions - Plus Menu */}
-                        <div className="relative flex gap-1 sm:gap-2">
+                    <div className="flex items-center justify-between px-3 sm:px-4 pb-3 sm:pb-4 gap-2">
+                        {/* Left Actions - Buttons */}
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setShowAttachMenu(!showAttachMenu)}
-                                className="p-2 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-all duration-200"
-                                title="More options"
+                                onClick={handleAttachClick}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 border border-transparent hover:border-border"
+                                title="Upload Image"
                                 disabled={isRecording}
                             >
-                                <Plus className="w-5 h-5" />
+                                <ImageIcon className="w-4 h-4" />
+                                <span className="hidden sm:inline">Upload</span>
+                            </button>
+
+                            <button
+                                onClick={() => setIsManualMode(!isManualMode)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 border ${isManualMode
+                                        ? "bg-orange-500/10 text-orange-600 border-orange-500/20"
+                                        : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground hover:border-border"
+                                    }`}
+                                title="Generate Manual"
+                                disabled={isRecording}
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                <span className="hidden sm:inline">Manual</span>
+                                {isManualMode ? (
+                                    <CircleDot className="w-3.5 h-3.5" />
+                                ) : (
+                                    <Circle className="w-3.5 h-3.5" />
+                                )}
                             </button>
                         </div>
 
@@ -268,10 +301,13 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
                                 <button
                                     onClick={handleSend}
                                     disabled={isLoading}
-                                    className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl transition-all active:scale-95 shadow-lg bg-gradient-to-tr from-green-500 to-green-600 text-white shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 disabled:opacity-50"
-                                    title="Send Message"
+                                    className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl transition-all active:scale-95 shadow-lg text-white disabled:opacity-50 ${isManualMode
+                                            ? "bg-gradient-to-tr from-blue-500 to-blue-600 shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105"
+                                            : "bg-gradient-to-tr from-green-500 to-green-600 shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105"
+                                        }`}
+                                    title={isManualMode ? "Generate Manual" : "Send Message"}
                                 >
-                                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    {isManualMode ? <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
                                 </button>
                             ) : (
                                 // Record button
@@ -289,58 +325,6 @@ export function ChatInput({ onSend, onGenerateManual, isLoading, onTyping }: Cha
                         </div>
                     </div>
                 </div>
-
-                {/* Attach Menu Dropdown - Moved to root of group to avoid clipping */}
-                {showAttachMenu && (
-                    <div className="absolute bottom-full left-0 mb-4 bg-card/95 backdrop-blur-sm border border-border/50 rounded-2xl shadow-2xl p-2 min-w-[220px] z-[100] animate-in fade-in slide-in-from-bottom-4 flex flex-col gap-1 ring-1 ring-black/5">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Actions
-                        </div>
-                        <button
-                            onClick={handleAttachClick}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-all text-sm group"
-                        >
-                            <div className="p-1.5 rounded-lg bg-background border border-border group-hover:border-primary/50 transition-colors">
-                                <Paperclip className="w-4 h-4" />
-                            </div>
-                            <div className="flex flex-col items-start">
-                                <span className="font-medium">Upload Image</span>
-                                <span className="text-[10px] text-muted-foreground leading-none">Identify tools</span>
-                            </div>
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                setShowAttachMenu(false);
-                                onGenerateManual?.(selectedFiles);
-                                // Clear files after triggering manual generation
-                                setSelectedFiles([]);
-                                setImagePreviews([]);
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-all text-sm group"
-                        >
-                            <div className="p-1.5 rounded-lg bg-background border border-border group-hover:border-primary/50 transition-colors">
-                                <BookOpen className="w-4 h-4" />
-                            </div>
-                            <div className="flex flex-col items-start">
-                                <span className="font-medium">Generate Manual</span>
-                                <span className="text-[10px] text-muted-foreground leading-none">Create guides</span>
-                            </div>
-                        </button>
-
-                        <div className="h-px bg-border/50 my-1" />
-
-                        <button
-                            onClick={() => setShowAttachMenu(false)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-all text-sm group"
-                        >
-                            <div className="p-1.5 rounded-lg bg-background border border-border group-hover:border-primary/50 transition-colors">
-                                <Globe className="w-4 h-4" />
-                            </div>
-                            <span>Web Search</span>
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Suggested Topics - Only show if empty chat? Passed from parent? For now keep static */}

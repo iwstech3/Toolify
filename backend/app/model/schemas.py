@@ -43,6 +43,7 @@ class ManualGenerationResponse(BaseModel):
     manual: str
     summary: str
     audio_files: Optional[dict] = None 
+    pdf_url: Optional[str] = None
     timestamp: datetime
 
 

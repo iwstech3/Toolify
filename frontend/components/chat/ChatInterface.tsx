@@ -15,6 +15,7 @@ import {
   Info,
   BookOpen,
   StopCircle,
+  Download,
 } from "lucide-react"; // Import new icons
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -28,6 +29,7 @@ interface Message {
   content: string;
   imageUrl?: string; // For displaying uploaded images
   audioUrl?: string; // For displaying sent audio
+  pdfUrl?: string; // For PDF manuals
 }
 
 interface ManualMessage extends Message {
@@ -260,6 +262,7 @@ export function ChatInterface() {
         role: "assistant",
         content: `**Manual for ${response.tool_name}**\n\n${response.summary}\n\n**Full Manual:**\n${response.manual}`,
         audioUrl: response.audio_files?.url,
+        pdfUrl: response.pdf_url,
       };
 
       setMessages((prev) => [...prev, manualMessage]);
@@ -433,21 +436,21 @@ export function ChatInterface() {
                     <div
                       key={message.id}
                       className={`flex w-full ${message.role === "user"
-                          ? "justify-end"
-                          : "justify-start"
+                        ? "justify-end"
+                        : "justify-start"
                         }`}
                     >
                       <div
                         className={`flex gap-3 sm:gap-4 max-w-[95%] sm:max-w-[85%] ${message.role === "user"
-                            ? "flex-row-reverse"
-                            : "flex-row"
+                          ? "flex-row-reverse"
+                          : "flex-row"
                           }`}
                       >
                         {/* Avatar */}
                         <div
                           className={`mt-1 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs shrink-0 select-none ${message.role === "user"
-                              ? "bg-gradient-to-tr from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/20"
-                              : "bg-surface-2 border border-border text-foreground"
+                            ? "bg-gradient-to-tr from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/20"
+                            : "bg-surface-2 border border-border text-foreground"
                             }`}
                         >
                           {message.role === "user" ? (
@@ -486,8 +489,8 @@ export function ChatInterface() {
                           {message.content && (
                             <div
                               className={`p-3 sm:p-4 rounded-2xl text-sm sm:text-base leading-relaxed ${message.role === "user"
-                                  ? "bg-card border border-orange-500 text-foreground shadow-sm"
-                                  : "bg-transparent text-foreground/90"
+                                ? "bg-card border border-orange-500 text-foreground shadow-sm"
+                                : "bg-transparent text-foreground/90"
                                 }`}
                             >
                               <div className="markdown-content whitespace-pre-wrap">
@@ -503,8 +506,8 @@ export function ChatInterface() {
                                 handlePlayAudio(message.id!, message.content)
                               }
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all self-start ${playingMessageId === message.id
-                                  ? "bg-orange-500/20 text-orange-500 hover:bg-orange-500/30"
-                                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                ? "bg-orange-500/20 text-orange-500 hover:bg-orange-500/30"
+                                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                                 }`}
                               title={
                                 playingMessageId === message.id
@@ -524,6 +527,20 @@ export function ChatInterface() {
                                 </>
                               )}
                             </button>
+                          )}
+
+                          {/* PDF Download Button */}
+                          {message.pdfUrl && (
+                            <a
+                              href={message.pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all self-start bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20 mt-2"
+                              title="Download PDF Manual"
+                            >
+                              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="underline">Download PDF Manual</span>
+                            </a>
                           )}
                         </div>
                       </div>

@@ -31,6 +31,7 @@ export interface ManualGenerationResponse {
     url: string;
     generated_at: string;
   };
+  pdf_url?: string;
   timestamp: string;
 }
 
