@@ -346,16 +346,29 @@ export function ChatInterface() {
 
       <div className="flex-1 flex flex-col h-full relative overflow-hidden w-full">
         {/* Header */}
-        <header className="h-14 sm:h-16 border-b border-border flex items-center justify-between px-2 sm:px-4 absolute top-0 w-full bg-background/80 backdrop-blur-md z-10 md:hidden">
-          {/* Mobile Menu Button */}
+        {/* Header - Visible on mobile, and conditionally on desktop when content exists */}
+        <header className={cn(
+          "h-14 sm:h-16 border-b border-border flex items-center px-2 sm:px-4 absolute top-0 w-full bg-background/80 backdrop-blur-md z-10 transition-all duration-500",
+          // Desktop: Hide by default (showing hero), slide in when typing/active
+          (isTyping || messages.length > 0)
+            ? "md:opacity-100 md:translate-y-0"
+            : "md:opacity-0 md:-translate-y-full md:pointer-events-none"
+        )}>
+          {/* Mobile Menu Button - Hidden on Desktop */}
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 hover:bg-muted rounded-lg"
+            className="p-2 -ml-2 hover:bg-muted rounded-lg md:hidden"
           >
             <PanelLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <span className="font-semibold text-sm sm:text-base">Toolify</span>
-          <div className="w-9 sm:w-10" /> {/* Spacer for balance */}
+
+          {/* Title Area - Centered on Desktop, Centered-ish on Mobile */}
+          <div className="flex-1 flex items-center justify-center md:justify-start md:pl-4 gap-2">
+            <Wrench className="w-5 h-5 text-orange-500 hidden md:block" />
+            <span className="font-semibold text-sm sm:text-base">Toolify</span>
+          </div>
+
+          <div className="w-9 sm:w-10 md:hidden" /> {/* Spacer for balance on Mobile */}
         </header>
 
         {/* Main Content Area */}
