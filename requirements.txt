@@ -15,4 +15,3 @@ langchain-community
 supabase
 langsmith
 youtube_transcript_api
-fpdf2==2.7.9

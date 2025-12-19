@@ -43,7 +43,7 @@ class ManualGenerationResponse(BaseModel):
     manual: str
     summary: str
     audio_files: Optional[dict] = None 
-    pdf_url: Optional[str] = None
+    # pdf_url removed - PDF generation moved to frontend
     timestamp: datetime
 
 

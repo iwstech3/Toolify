@@ -8,7 +8,7 @@ from app.chains.tool_manual_chain import tool_manual_chain
 from app.services.audio_service import audio_service
 from app.services.tavily_service import perform_tool_research
 from app.services.vision_service import recognize_tools_in_image
-from app.services.pdf_service import PDFService
+# PDF generation moved to frontend
 from app.dependencies import get_current_user, get_user_supabase_client, image_file_validator
 from app.config import supabase
 from supabase import Client
@@ -130,57 +130,30 @@ async def generate_tool_manual(
                 # Don't fail the request if audio fails
                 pass
 
-        # 8. Generate PDF Manual
-        pdf_url = None
-        try:
-            # Combine summary and manual for the content
-            full_manual_content = f"# Manual for {final_tool_name}\n\n## Summary\n{summary}\n\n## Detailed Guide\n{manual}"
-            
-            pdf_res = PDFService.create_manual_pdf(
-                tool_name=final_tool_name,
-                manual_content=full_manual_content,
-                user_id=str(user.id)
-            )
-            if pdf_res and 'publicUrl' in pdf_res:
-                 pdf_url = pdf_res['publicUrl']
-            elif isinstance(pdf_res, str): # Fallback if signature differs or just returns string
-                 pdf_url = pdf_res
+        # PDF generation has been moved to frontend
 
-        except Exception as e:
-            print(f"Failed to generate PDF: {e}")
-            # Don't fail the request if PDF fails
-            pass
-
-        # 9. Save Manual to Database
+        # 8. Save Manual to Database
         manual_data = {
             "user_id": str(user.id),
             "scan_id": scan_id,
             "tool_name": final_tool_name,
             "manual_content": manual,
             "summary_content": summary,
-            "audio_files": audio_files_data,
-            "pdf_url": pdf_url
+            "audio_files": audio_files_data
         }
         
         try:
             supabase.table("manuals").insert(manual_data).execute()
         except Exception as e:
-            print(f"Database insertion failed (possibly missing pdf_url column?): {e}")
-            # Try once more without pdf_url if it failed
-            try:
-                del manual_data["pdf_url"]
-                supabase.table("manuals").insert(manual_data).execute()
-            except Exception as e2:
-                print(f"Fallback database insertion failed: {e2}")
-                # Still don't fail the whole request just because history saving failed
-                pass
+            print(f"Database insertion failed: {e}")
+            # Don't fail the whole request just because history saving failed
+            pass
 
         return ManualGenerationResponse(
             tool_name=final_tool_name,
             manual=manual,
             summary=summary,
             audio_files=audio_files_data,
-            pdf_url=pdf_url,
             timestamp=datetime.now()
         )
         
