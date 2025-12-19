@@ -83,6 +83,10 @@ Please create a detailed, well-structured manual that includes:
 - Reference to video tutorials (if mentioned in research)
 - Further reading suggestions
 
+## 9. Critical Safety Recap
+- Summary of most important safety warnings
+- Final reminders for safe operation
+
 Format the manual with clear headings, bullet points, and numbered lists where appropriate.
 Write in {language} language.
 Be thorough but concise. Aim for a manual that is both informative and easy to follow.""")
@@ -146,66 +150,6 @@ Write in {language} language. Be concise and informative.""")
         })
         
         return summary
-    
-    def generate_safety_guide(
-        self,
-        tool_name: str,
-        research_context: str,
-        language: str = "en"
-    ) -> str:
-        """
-        Generate focused safety guidelines for the tool
-        
-        Args:
-            tool_name: Name of the tool
-            research_context: Research data from Tavily
-            language: Output language
-            
-        Returns:
-            Safety guide as string
-        """
-        
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "You are a safety expert specializing in tool usage and workplace safety."),
-            ("human", """Based on this research about {tool_name}:
-
-{research_context}
-
-Create a focused safety guide that includes:
-
-## Safety Precautions for {tool_name}
-
-### Essential Safety Equipment
-- List required protective gear
-
-### Before Use
-- Safety checks to perform
-- Environmental considerations
-
-### During Use
-- Critical safety rules
-- What to watch out for
-
-### After Use
-- Safe shutdown procedures
-- Storage safety
-
-### Emergency Procedures
-- What to do if something goes wrong
-- First aid considerations
-
-Write in {language} language. Prioritize user safety above all else.""")
-        ])
-        
-        chain = prompt_template | self.llm | self.output_parser
-        
-        safety_guide = chain.invoke({
-            "tool_name": tool_name,
-            "research_context": research_context,
-            "language": language
-        })
-        
-        return safety_guide
 
 
 # Create singleton instance

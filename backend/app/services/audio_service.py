@@ -1,66 +1,115 @@
-
 import os
 import tempfile
+import requests
 import google.generativeai as genai
-from gtts import gTTS
 from datetime import datetime
 from app.config import settings
 
 # Configure Gemini
 genai.configure(api_key=settings.google_api_key)
 
+# YarnGPT API Configuration
+YARNGPT_API_URL = "https://yarngpt.ai/api/v1/tts"
+
 class AudioService:
     """Service for handling audio operations: TTS and STT"""
     
     def __init__(self):
-        # Create audio directory if it doesn't exist
-        if not os.path.exists("audio"):
-            os.makedirs("audio")
+        pass
     
-    def generate_audio(self, text, tool_name, language="en", tld="ng"):
-        """Generate audio file from text"""
+    def clean_text_for_tts(self, text: str) -> str:
+        """
+        Cleans text for TTS generation by removing markdown and normalizing whitespace.
+        """
+        import re
+        
+        # Remove bold/italic markers (* or _)
+        text = re.sub(r'[\*_]{1,3}', '', text)
+        
+        # Remove headers (### Title -> Title)
+        text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+        
+        # Remove links ([text](url) -> text)
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        
+        # Remove code blocks (```code``` -> code)
+        text = re.sub(r'```[\w]*', '', text)
+        
+        # Remove inline code (`code` -> code)
+        text = re.sub(r'`', '', text)
+        
+        # Remove list bullets (* Item -> Item, - Item -> Item)
+        text = re.sub(r'^[\*\-]\s+', '', text, flags=re.MULTILINE)
+        
+        # Normalize newlines: replace literal \n with actual newline if needed
+        text = text.replace('\\n', '\n')
+        
+        # Collapse multiple newlines to max 2
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        
+        return text.strip()
+
+    def generate_audio(self, text, tool_name, user_id):
+        """
+        Generate audio file from text using YarnGPT and upload to Supabase.
+        """
         try:
-            print(f"🎵 Starting audio generation for: {tool_name}")
-            print(f"   Text length: {len(text)} characters")
-            print(f"   Language: {language}")
-            print(f"   TLD: {tld}")
+            # Clean text before processing
+            text = self.clean_text_for_tts(text)
+            
+            # Prepare headers
+            if not settings.yarngpt_api_key:
+                pass
+            
+            headers = {
+                "Authorization": f"Bearer {settings.yarngpt_api_key}",
+                "Content-Type": "application/json"
+            }
+
+            # Prepare request to YarnGPT
+            payload = {
+                "text": text,
+                "voice": "Idera", # Default voice
+            }
+            
+            response = requests.post(YARNGPT_API_URL, json=payload, headers=headers, stream=True)
+            
+            if response.status_code != 200:
+                raise Exception(f"YarnGPT API failed: {response.text}")
             
             # Create filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             safe_name = "".join(c if c.isalnum() else "_" for c in tool_name)
-            filename = f"{safe_name}_manual_{timestamp}.mp3"
-            filepath = os.path.join("audio", filename)
+            filename = f"{safe_name}_{timestamp}.mp3"
             
-            print(f"   Filepath: {filepath}")
+            # Stream to memory
+            import io
+            audio_buffer = io.BytesIO()
+            for chunk in response.iter_content(chunk_size=8192):
+                audio_buffer.write(chunk)
             
-            # Generate audio
-            tts = gTTS(text=text, lang=language, tld=tld)
-            tts.save(filepath)
+            audio_content = audio_buffer.getvalue()
+
+            # Upload to Supabase Storage
+            from app.config import supabase
+            storage_path = f"{user_id}/{filename}"
+            bucket_name = "tool-audio"
             
-            print(f"✅ Audio saved successfully: {filepath}")
-            return filepath
+            supabase.storage.from_(bucket_name).upload(
+                file=audio_content,
+                path=storage_path,
+                file_options={"content-type": "audio/mp3"}
+            )
+            
+            # Get Public URL
+            public_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
+            
+            return public_url
             
         except Exception as e:
-            print(f"❌ Audio generation error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+
             raise Exception(f"Audio generation error: {str(e)}")
-    
-    def generate_summary_audio(self, summary, tool_name, language="en", tld="ng"):
-        """Generate audio for summary only"""
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_name = "".join(c if c.isalnum() else "_" for c in tool_name)
-            filename = f"{safe_name}_summary_{timestamp}.mp3"
-            filepath = os.path.join("audio", filename)
-            
-            tts = gTTS(text=summary, lang=language, tld=tld)
-            tts.save(filepath)
-            
-            return filepath
-            
-        except Exception as e:
-            raise Exception(f"Summary audio error: {str(e)}")
+
 
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str = "audio/mp3") -> str:
         """
@@ -108,7 +157,7 @@ class AudioService:
             return response.text.strip()
             
         except Exception as e:
-            print(f"Error transcribing audio: {e}")
+
             return ""
         finally:
             # Clean up local temp file
@@ -116,4 +165,3 @@ class AudioService:
                 os.unlink(temp_audio_path)
 
 audio_service = AudioService()
-

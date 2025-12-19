@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import manual, tool_recognition, chat, auth
+from app.routes import manual, chat, auth
 
 # Create FastAPI app
 app = FastAPI(
@@ -21,7 +21,6 @@ app.add_middleware(
 
 # Register routers
 app.include_router(manual.router)
-app.include_router(tool_recognition.router)
 app.include_router(chat.router)
 # CRITICAL: Registers the authentication router
 app.include_router(auth.router)
@@ -34,8 +33,6 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "generate_manual": "/api/generate-manual",
-            "generate_safety_guide": "/api/generate-safety-guide",
-            "recognize_tool": "/api/recognize-tool",
             "chat": "/api/chat"
         }
     }

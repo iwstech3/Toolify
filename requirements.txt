@@ -7,10 +7,11 @@ pydantic
 pydantic-settings
 google-generativeai
 tavily-python
-gtts
+requests
 langchain
 langchain-core
 langchain-google-genai
 langchain-community
 supabase
 langsmith
+youtube_transcript_api

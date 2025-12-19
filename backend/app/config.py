@@ -22,11 +22,12 @@ class Settings:
     supabase_url: str = os.environ.get("SUPABASE_URL")
     supabase_service_key: str = os.environ.get("SUPABASE_SERVICE_KEY")
     supabase_anon_key: str = os.environ.get("SUPABASE_ANON_KEY")
+    yarngpt_api_key: str = os.getenv("YARNGPT_API_KEY")
 
     # Server settings
     host: str = os.getenv("HOST", "0.0.0.0")
     port: int = int(os.getenv("PORT", 8000))
-    cors_origins: str = os.getenv("CORS_ORIGINS","http://localhost:3000,https://toolify-two.vercel.app")
+    cors_origins: str = os.getenv("CORS_ORIGINS","http://localhost:3000,https://toolify-gpt.vercel.app")
 
     # AI Model settings
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
