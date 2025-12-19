@@ -54,40 +54,50 @@
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
     }
   }
+
   @keyframes float {
+
     0%,
     100% {
       transform: translateY(0);
     }
+
     50% {
       transform: translateY(-10px);
     }
   }
+
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
     }
+
     100% {
       background-position: 200% 0;
     }
   }
+
   @keyframes fadeUp {
     from {
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -101,6 +111,7 @@
   looks the same as it did with Tailwind CSS v3.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -115,22 +126,27 @@
   padding-inline: 2rem;
   width: 100%;
 
-  @media (width >= 640px) {
+  @media (width >=640px) {
     max-width: 640px;
   }
-  @media (width >= 768px) {
+
+  @media (width >=768px) {
     max-width: 768px;
   }
-  @media (width >= 1024px) {
+
+  @media (width >=1024px) {
     max-width: 1024px;
   }
-  @media (width >= 1280px) {
+
+  @media (width >=1280px) {
     max-width: 1280px;
   }
-  @media (width >= 1400px) {
+
+  @media (width >=1400px) {
     max-width: 1400px;
   }
-  @media (width >= 1600px) {
+
+  @media (width >=1600px) {
     max-width: 1600px;
   }
 }
@@ -205,17 +221,13 @@
   --radius: 0.75rem;
 
   /* Custom tokens */
-  --hero-gradient: linear-gradient(
-    135deg,
-    hsl(215 25% 12%) 0%,
-    hsl(215 30% 18%) 50%,
-    hsl(199 40% 25%) 100%
-  );
-  --text-gradient: linear-gradient(
-    135deg,
-    hsl(199 89% 48%) 0%,
-    hsl(175 70% 50%) 100%
-  );
+  --hero-gradient: linear-gradient(135deg,
+      hsl(215 25% 12%) 0%,
+      hsl(215 30% 18%) 50%,
+      hsl(199 40% 25%) 100%);
+  --text-gradient: linear-gradient(135deg,
+      hsl(199 89% 48%) 0%,
+      hsl(175 70% 50%) 100%);
   --card-shadow: 0 4px 24px -4px hsl(215 25% 15% / 0.08);
   --card-shadow-hover: 0 8px 32px -4px hsl(215 25% 15% / 0.12);
   --glow: 0 0 60px hsl(199 89% 48% / 0.15);
@@ -314,7 +326,38 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Scrollbar utilities */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch-friendly utilities */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+  }
+
+  .text-responsive-lg {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+  }
+
+  .text-responsive-xl {
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
   }
 }

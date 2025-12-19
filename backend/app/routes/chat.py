@@ -214,3 +214,37 @@ async def get_chat_messages(
     except Exception as e:
         print(f"Error fetching messages: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-tts")
+async def generate_tts(
+    text: str = Form(...),
+    language: str = Form("en"),
+    user: dict = Depends(get_current_user)
+):
+    """Generate text-to-speech audio for a message"""
+    try:
+        from fastapi.responses import StreamingResponse
+        import io
+        
+        # Generate audio using gTTS
+        tts_audio = audio_service.generate_audio(
+            text=text,
+            tool_name="chat_message",
+            language=language,
+            tld="com"
+        )
+        
+        # Read the file and return as streaming response
+        def iterfile():
+            with open(tts_audio, "rb") as audio_file:
+                yield from audio_file
+        
+        return StreamingResponse(
+            iterfile(),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline"}
+        )
+        
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS generation error: {str(e)}")
