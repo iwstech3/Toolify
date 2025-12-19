@@ -14,7 +14,6 @@ import {
   MessageSquare,
   Info,
   BookOpen,
-  BookOpen,
   StopCircle,
   Download,
 } from "lucide-react"; // Import new icons
@@ -28,7 +27,6 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  imageUrl?: string; // For displaying uploaded images
   imageUrl?: string; // For displaying uploaded images
   audioUrl?: string; // For displaying sent audio
   pdfUrl?: string; // For PDF manuals
