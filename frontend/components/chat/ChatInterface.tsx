@@ -599,7 +599,7 @@ export function ChatInterface() {
                       Image Recognition
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Upload an image of a tool by clicking the <strong>+</strong> icon and selecting "Attach Files". Toolify will identify it for you.
+                      Upload an image of a tool by clicking the <strong>+</strong> icon and selecting &quot;Attach Files&quot;. Toolify will identify it for you.
                     </p>
                   </div>
                 </div>
@@ -611,7 +611,7 @@ export function ChatInterface() {
                       Generate Manuals
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Need a formal manual? Click the <strong>+</strong> icon and select "Generate Manual". It creates a structured guide for your tool.
+                      Need a formal manual? Click the <strong>+</strong> icon and select &quot;Generate Manual&quot;. It creates a structured guide for your tool.
                     </p>
                   </div>
 
@@ -621,7 +621,7 @@ export function ChatInterface() {
                       Audio Playback
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Listen to AI responses by clicking the "Listen" button below any assistant message. Great for hands-free learning!
+                      Listen to AI responses by clicking the &quot;Listen&quot; button below any assistant message. Great for hands-free learning!
                     </p>
                   </div>
                 </div>
