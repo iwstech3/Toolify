@@ -21,6 +21,17 @@ export interface ChatResponse {
     session_id: string;
 }
 
+export interface ManualGenerationResponse {
+    tool_name: string;
+    manual: string;
+    summary: string;
+    audio_files?: {
+        url: string;
+        generated_at: string;
+    };
+    timestamp: string;
+}
+
 /**
  * Custom error class for API errors with status code
  */
@@ -156,5 +167,92 @@ export async function getChatMessages(token: string, chatId: string): Promise<Me
         }
         console.error('❌ Network error fetching messages:', error);
         throw new Error('Failed to load messages. Please try again.');
+    }
+}
+
+/**
+ * Generate a manual for a tool
+ */
+export async function generateManual(
+    token: string,
+    toolName?: string,
+    file?: File | null,
+    generateAudio: boolean = false
+): Promise<ManualGenerationResponse> {
+    try {
+        const formData = new FormData();
+        formData.append("language", "en"); // Default
+        formData.append("generate_audio", String(generateAudio));
+
+        if (toolName) formData.append("tool_name", toolName);
+        if (file) formData.append("file", file);
+
+        console.log('📤 Requesting manual generation:', {
+            hasToolName: !!toolName,
+            hasFile: !!file,
+            generateAudio
+        });
+
+        const response = await fetch(`${API_URL}/api/generate-manual`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Manual generation failed:', response.status, errorText);
+
+            if (response.status === 401) {
+                throw new APIError(401, 'Authentication failed. Please sign in again.');
+            } else if (response.status === 404) {
+                throw new APIError(404, 'No tool found in the image.');
+            }
+
+            throw new APIError(response.status, `Failed to generate manual: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        if (error instanceof APIError) {
+            throw error;
+        }
+        console.error('❌ Network error generating manual:', error);
+        throw new Error('Failed to generate manual. Please try again.');
+    }
+}
+
+/**
+ * Generate TTS audio for text
+ */
+export async function generateTTS(
+    token: string,
+    text: string,
+    language: string = "en"
+): Promise<Blob> {
+    try {
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('language', language);
+
+        const response = await fetch(`${API_URL}/api/generate-tts`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate audio');
+        }
+
+        return await response.blob();
+    } catch (error) {
+        console.error('TTS Error:', error);
+        throw error;
     }
 }
