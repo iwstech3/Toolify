@@ -33,7 +33,9 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // For mobile
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // For desktop
+
   const [showAbout, setShowAbout] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -330,6 +332,7 @@ export function ChatInterface() {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isCollapsed={isSidebarCollapsed}
           onShowAbout={() => setShowAbout(true)}
+          onShowHelp={() => setShowHelp(true)}
         />
       </div>
 
@@ -552,6 +555,85 @@ export function ChatInterface() {
           </div>
         )
       }
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4">
+          <div className="bg-card w-full max-w-3xl rounded-2xl shadow-2xl border border-border p-4 sm:p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowHelp(false)}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            </button>
+
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="flex items-center gap-3 sm:gap-4 border-b border-border pb-4 sm:pb-6">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                  <Info className="w-6 h-6 sm:w-8 sm:h-8" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold">How to use Toolify</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Quick guide to navigating the app
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2 text-primary">
+                      <MessageSquare className="w-4 h-4" />
+                      Chatting
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Type your questions in the input box below. You can ask about any tool, maintenance procedures, or safety guidelines.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2 text-primary">
+                      <Search className="w-4 h-4" />
+                      Image Recognition
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Upload an image of a tool by clicking the <strong>+</strong> icon and selecting "Attach Files". Toolify will identify it for you.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2 text-primary">
+                      <BookOpen className="w-4 h-4" />
+                      Generate Manuals
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Need a formal manual? Click the <strong>+</strong> icon and select "Generate Manual". It creates a structured guide for your tool.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2 text-primary">
+                      <Volume2 className="w-4 h-4" />
+                      Audio Playback
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Listen to AI responses by clicking the "Listen" button below any assistant message. Great for hands-free learning!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 text-orange-600/90 text-sm">
+                <strong>Pro Tip:</strong> Use the sidebar to access your chat history or start a new conversation anytime.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }

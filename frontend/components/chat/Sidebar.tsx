@@ -8,6 +8,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  HelpCircle,
 } from "lucide-react";
 import { ThemeToggle } from "../ThemeToggle";
 import { UserButton, useUser } from "@clerk/nextjs";
@@ -23,9 +24,10 @@ interface SidebarProps {
   onToggleCollapse?: () => void; // For desktop collapse
   isCollapsed?: boolean; // Desktop collapse state
   onShowAbout: () => void;
+  onShowHelp: () => void;
 }
 
-export function Sidebar({ chats, currentChatId, onSelectChat, onNewChat, onClose, onToggleCollapse, isCollapsed, onShowAbout }: SidebarProps) {
+export function Sidebar({ chats, currentChatId, onSelectChat, onNewChat, onClose, onToggleCollapse, isCollapsed, onShowAbout, onShowHelp }: SidebarProps) {
   const { user } = useUser();
 
   return (
@@ -112,8 +114,17 @@ export function Sidebar({ chats, currentChatId, onSelectChat, onNewChat, onClose
         )}
       </nav>
 
-      {/* About Item */}
-      <div className="w-full px-2 sm:px-4 mt-2">
+      {/* Help & About Items */}
+      <div className="w-full px-2 sm:px-4 mt-2 space-y-1">
+        <button
+          onClick={onShowHelp}
+          className="w-full flex items-center p-2.5 sm:p-3 min-h-[44px] rounded-xl transition-all relative text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 min-w-[1.25rem] sm:min-w-[1.5rem]" />
+          <span className="ml-3 font-medium text-sm sm:text-base opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+            Help & Guide
+          </span>
+        </button>
         <button
           onClick={onShowAbout}
           className="w-full flex items-center p-2.5 sm:p-3 min-h-[44px] rounded-xl transition-all relative text-muted-foreground hover:text-foreground hover:bg-muted"
