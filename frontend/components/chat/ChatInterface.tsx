@@ -260,7 +260,15 @@ export function ChatInterface() {
       const manualMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: `**Manual for ${response.tool_name}**\n\n> ${response.summary}\n\n---\n\n${response.manual}`,
+        content: `### 📘 Manual: ${response.tool_name}
+
+> **Quick Summary**
+> ${response.summary}
+
+---
+
+#### 📖 Detailed Guide
+${response.manual}`,
         audioUrl: response.audio_files?.url,
         pdfUrl: response.pdf_url,
       };
