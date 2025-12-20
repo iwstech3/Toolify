@@ -6,7 +6,7 @@ os.environ["HTTPX_NO_HTTP2"] = "1"
 
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routes import manual, chat, auth
+from app.routes import manual, chat, auth, audio
 
 # Create FastAPI app
 app = FastAPI(
@@ -27,6 +27,7 @@ app.add_middleware(
 # Register routers
 app.include_router(manual.router)
 app.include_router(chat.router)
+app.include_router(audio.router)
 # CRITICAL: Registers the authentication router
 app.include_router(auth.router)
 
