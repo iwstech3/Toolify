@@ -1,6 +1,8 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Form
 from app.services.audio_service import audio_service
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_user_supabase_client
+from supabase import Client
 
 router = APIRouter(prefix="/api", tags=["Audio"])
 
@@ -8,7 +10,9 @@ router = APIRouter(prefix="/api", tags=["Audio"])
 async def generate_tts(
     text: str = Form(...),
     language: str = Form("en"),
-    user: dict = Depends(get_current_user)
+    message_id: Optional[str] = Form(None),
+    user: dict = Depends(get_current_user),
+    supabase_client: Client = Depends(get_user_supabase_client)
 ):
     """Generate text-to-speech audio for a message"""
     try:
@@ -18,6 +22,16 @@ async def generate_tts(
             tool_name="chat_message",
             user_id=str(user.id)
         )
+        
+        # If message_id is provided, save the audio URL to the message history
+        if message_id:
+            try:
+                supabase_client.table("messages").update({
+                    "audio_url": audio_url
+                }).eq("id", message_id).execute()
+            except Exception as db_error:
+                print(f"Failed to update message with audio URL: {db_error}")
+                # Don't fail the request, just log the error
         
         return {"url": audio_url}
         

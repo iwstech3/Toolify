@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
+import { Html } from "react-pdf-html";
+import { marked } from "marked";
 
 // Register a standard font
 Font.register({
@@ -45,11 +47,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666666",
   },
-  content: {
-    fontSize: 12,
-    lineHeight: 1.5,
-    color: "#333333",
-  },
   footer: {
     position: "absolute",
     bottom: 30,
@@ -64,6 +61,69 @@ const styles = StyleSheet.create({
   },
 });
 
+// Styles for HTML content
+const htmlStylesheet = {
+  body: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: "#333333",
+    fontFamily: "Helvetica",
+  },
+  h1: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#1A1A1A",
+  },
+  h2: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#1A1A1A",
+    borderBottom: "1px solid #EEEEEE",
+    paddingBottom: 4,
+  },
+  h3: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 6,
+    color: "#333333",
+  },
+  p: {
+    marginBottom: 8,
+  },
+  ul: {
+    marginBottom: 8,
+    marginLeft: 10,
+  },
+  ol: {
+    marginBottom: 8,
+    marginLeft: 10,
+  },
+  li: {
+    marginBottom: 4,
+  },
+  strong: {
+    fontWeight: "bold",
+  },
+  em: {
+    fontStyle: "italic",
+  },
+  code: {
+    fontFamily: "Courier",
+    backgroundColor: "#F5F5F5",
+    padding: 2,
+    fontSize: 10,
+  },
+  pre: {
+    fontFamily: "Courier",
+    backgroundColor: "#F5F5F5",
+    padding: 10,
+    marginBottom: 10,
+    fontSize: 10,
+  },
+};
+
 interface ManualPDFProps {
   content: string;
   toolName?: string;
@@ -73,6 +133,9 @@ export const ManualPDF: React.FC<ManualPDFProps> = ({
   content,
   toolName = "Tool Manual",
 }) => {
+  // Convert Markdown to HTML
+  const htmlContent = marked.parse(content) as string;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -82,7 +145,7 @@ export const ManualPDF: React.FC<ManualPDFProps> = ({
         </View>
 
         <View>
-          <Text style={styles.content}>{content}</Text>
+          <Html stylesheet={htmlStylesheet}>{htmlContent}</Html>
         </View>
 
         <View style={styles.footer}>

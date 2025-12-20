@@ -61,6 +61,10 @@ export function ChatInterface() {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
 
+  const [generatingMessageIds, setGeneratingMessageIds] = useState<Set<string>>(
+    new Set()
+  );
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -120,6 +124,7 @@ export function ChatInterface() {
             id: m.id || Date.now().toString(),
             role: m.role,
             content: m.content,
+            audioUrl: (m as any).audio_url, // Load persisted audio URL
           }))
         );
         setCurrentChatId(chatId);
@@ -128,6 +133,31 @@ export function ChatInterface() {
       console.error("Failed to load messages:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateAudioForMessage = async (
+    messageId: string,
+    content: string
+  ) => {
+    try {
+      setGeneratingMessageIds((prev) => new Set(prev).add(messageId));
+      const token = await getToken();
+      if (!token) return;
+
+      const audioUrl = await api.generateTTS(token, content, "en", messageId);
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, audioUrl } : msg))
+      );
+    } catch (error) {
+      console.error("Failed to generate audio:", error);
+    } finally {
+      setGeneratingMessageIds((prev) => {
+        const next = new Set(prev);
+        next.delete(messageId);
+        return next;
+      });
     }
   };
 
@@ -186,13 +216,17 @@ export function ChatInterface() {
       );
 
       // Response structure: { content: "...", session_id: "...", ... }
+      const aiMessageId = (Date.now() + 1).toString();
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: aiMessageId,
         role: "assistant",
         content: response.content,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Trigger auto-audio generation
+      generateAudioForMessage(aiMessageId, response.content);
 
       // If it was a new chat, update session and list
       if (response.session_id && response.session_id !== currentChatId) {
@@ -301,8 +335,9 @@ export function ChatInterface() {
         // Don't fail the whole request if PDF fails, just log it
       }
 
+      const manualMessageId = Date.now().toString();
       const manualMessage: Message = {
-        id: Date.now().toString(),
+        id: manualMessageId,
         role: "assistant",
         content: response.summary, // Display summary in chat
         audioUrl: response.audio_files?.url,
@@ -310,6 +345,9 @@ export function ChatInterface() {
       };
 
       setMessages((prev) => [...prev, manualMessage]);
+
+      // Trigger auto-audio generation for manual summary
+      generateAudioForMessage(manualMessageId, response.summary);
     } catch (error) {
       console.error("Failed to generate manual:", error);
       setMessages((prev) => [
@@ -326,7 +364,11 @@ export function ChatInterface() {
     }
   };
 
-  const handlePlayAudio = async (messageId: string, content: string) => {
+  const handlePlayAudio = async (
+    messageId: string,
+    content: string,
+    existingUrl?: string
+  ) => {
     try {
       // If already playing this message, stop it
       if (playingMessageId === messageId && audioRef.current) {
@@ -340,21 +382,29 @@ export function ChatInterface() {
         audioRef.current.pause();
       }
 
-      // Get auth token
-      const token = await getToken();
-      if (!token) {
-        console.error("No auth token available");
-        return;
-      }
-
       // Set loading state
       setPlayingMessageId(messageId);
 
-      // Call backend TTS endpoint using api helper
-      const audioUrl = await api.generateTTS(token, content);
+      let audioUrl = existingUrl;
+
+      if (!audioUrl) {
+        // Get auth token
+        const token = await getToken();
+        if (!token) {
+          console.error("No auth token available");
+          return;
+        }
+        // Call backend TTS endpoint using api helper
+        audioUrl = await api.generateTTS(token, content, "en", messageId);
+
+        // Update message with new audio URL to avoid re-fetching
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? { ...msg, audioUrl } : msg))
+        );
+      }
 
       // Play audio
-      if (audioRef.current) {
+      if (audioRef.current && audioUrl) {
         audioRef.current.src = audioUrl;
         audioRef.current.onended = () => {
           setPlayingMessageId(null);
@@ -531,8 +581,8 @@ export function ChatInterface() {
                             </div>
                           )}
 
-                          {/* Audio Player (Sent Audio) */}
-                          {message.audioUrl && (
+                          {/* Audio Player (Sent Audio - User only) */}
+                          {message.audioUrl && message.role === "user" && (
                             <div className="p-3 bg-muted/50 rounded-xl border border-border">
                               <audio
                                 controls
@@ -578,8 +628,13 @@ export function ChatInterface() {
                               {/* Audio Button */}
                               <button
                                 onClick={() =>
-                                  handlePlayAudio(message.id!, message.content)
+                                  handlePlayAudio(
+                                    message.id!,
+                                    message.content,
+                                    message.audioUrl
+                                  )
                                 }
+                                disabled={generatingMessageIds.has(message.id)}
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all ${
                                   playingMessageId === message.id
                                     ? "bg-orange-500/20 text-orange-500 hover:bg-orange-500/30"
@@ -591,7 +646,12 @@ export function ChatInterface() {
                                     : "Play audio (YarnGPT)"
                                 }
                               >
-                                {playingMessageId === message.id ? (
+                                {generatingMessageIds.has(message.id) ? (
+                                  <>
+                                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    <span>Generating...</span>
+                                  </>
+                                ) : playingMessageId === message.id ? (
                                   <>
                                     <StopCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     <span>Stop</span>

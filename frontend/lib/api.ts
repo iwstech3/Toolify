@@ -243,12 +243,16 @@ export async function generateManual(
 export async function generateTTS(
   token: string,
   text: string,
-  language: string = "en"
+  language: string = "en",
+  messageId?: string
 ): Promise<string> {
   try {
     const formData = new FormData();
     formData.append("text", text);
     formData.append("language", language);
+    if (messageId) {
+      formData.append("message_id", messageId);
+    }
 
     const response = await fetch(`${API_URL}/api/generate-tts`, {
       method: "POST",
