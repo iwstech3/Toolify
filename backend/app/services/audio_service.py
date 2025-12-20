@@ -157,7 +157,7 @@ class AudioService:
             return response.text.strip()
             
         except Exception as e:
-
+            print(f"Transcription Error: {e}")
             return ""
         finally:
             # Clean up local temp file

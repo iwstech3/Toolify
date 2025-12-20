@@ -62,6 +62,13 @@ async def chat(
                         message += f"\n[Voice Input]: {transcribed_text}"
                     else:
                         message = transcribed_text
+                else:
+                    # Transcription failed or returned empty
+                    print("Warning: Audio transcription returned empty text.")
+                    if not message:
+                        # If no text message was provided either, we can't just fail.
+                        # We'll add a placeholder so the user knows something happened but it failed.
+                        message = "[Audio received but transcription failed]"
 
         if not message:
             raise HTTPException(status_code=400, detail="Message or voice input is required")
