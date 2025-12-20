@@ -216,13 +216,22 @@ export function ChatInterface() {
         voice
       );
 
-      // Response structure: { content: "...", session_id: "...", ... }
+      // Response structure: { content: "...", session_id: "...", user_message?: "...", ... }
       const aiMessageId = (Date.now() + 1).toString();
       const aiMessage: Message = {
         id: aiMessageId,
         role: "assistant",
         content: response.content,
       };
+
+      // Update user message if we got transcribed text back
+      if (response.user_message) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId ? { ...msg, content: response.user_message! } : msg
+          )
+        );
+      }
 
       setMessages((prev) => [...prev, aiMessage]);
 

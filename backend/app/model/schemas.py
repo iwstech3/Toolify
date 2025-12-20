@@ -53,6 +53,7 @@ class ChatResponse(BaseModel):
     timestamp: datetime
     language: str
     session_id: str
+    user_message: Optional[str] = None  # Transcribed user message for voice inputs
 
 
 class LLMStructuredOutput(BaseModel):

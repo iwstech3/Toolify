@@ -21,6 +21,7 @@ export interface ChatResponse {
   timestamp: string;
   language: string;
   session_id: string;
+  user_message?: string; // Transcribed text for voice messages
 }
 
 export interface ManualGenerationResponse {

@@ -145,6 +145,17 @@ class AudioService:
             # Upload the file to Gemini
             uploaded_file = client.files.upload(file=temp_audio_path)
             
+            # Wait for file to be processed (ACTIVE state)
+            import time
+            max_wait = 30  # Maximum 30 seconds
+            wait_time = 0
+            while uploaded_file.state.name != "ACTIVE":
+                if wait_time >= max_wait:
+                    raise Exception(f"File processing timeout. State: {uploaded_file.state.name}")
+                time.sleep(1)
+                wait_time += 1
+                uploaded_file = client.files.get(name=uploaded_file.name)
+            
             prompt = "Transcribe the following audio exactly as spoken. Do not translate. Return only the transcription."
             
             response = client.models.generate_content(

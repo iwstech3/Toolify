@@ -51,6 +51,7 @@ async def chat(
                 chat_id = None
         
         scan_id = None
+        original_user_message = None  # Track the original transcribed message for voice
         
         # Handle voice input
         if voice:
@@ -62,6 +63,7 @@ async def chat(
                         message += f"\n[Voice Input]: {transcribed_text}"
                     else:
                         message = transcribed_text
+                    original_user_message = transcribed_text  # Store for response
                 else:
                     # Transcription failed or returned empty
                     print("Warning: Audio transcription returned empty text.")
@@ -69,6 +71,7 @@ async def chat(
                         # If no text message was provided either, we can't just fail.
                         # We'll add a placeholder so the user knows something happened but it failed.
                         message = "[Audio received but transcription failed]"
+                        original_user_message = message
 
         if not message:
             raise HTTPException(status_code=400, detail="Message or voice input is required")
@@ -168,7 +171,8 @@ async def chat(
             content=structured_response.response,
             language=structured_response.language,
             timestamp=datetime.now(),
-            session_id=chat_id
+            session_id=chat_id,
+            user_message=original_user_message  # Return transcribed text for voice
         )
 
     except Exception as e:
