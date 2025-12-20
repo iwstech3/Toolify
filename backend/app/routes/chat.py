@@ -55,55 +55,34 @@ async def chat(
         
         # Handle voice input
         if voice:
-            print(f"[CHAT] Voice input received - Filename: {voice.filename}, Content-Type: {voice.content_type}")
-            
             try:
                 voice_bytes = await voice.read()
-                voice_size = len(voice_bytes) if voice_bytes else 0
-                print(f"[CHAT] Voice file read successfully - Size: {voice_size} bytes")
-                
                 if voice_bytes:
-                    print(f"[CHAT] Starting audio transcription - MIME type: {voice.content_type or 'audio/mp3'}")
-                    
                     try:
                         transcribed_text = audio_service.transcribe_audio(
                             voice_bytes, 
                             mime_type=voice.content_type or "audio/mp3"
                         )
-                        print(f"[CHAT] Transcription completed - Result length: {len(transcribed_text) if transcribed_text else 0} chars")
                         
                         if transcribed_text:
-                            print(f"[CHAT] Transcription successful: {transcribed_text[:100]}...")
                             if message:
                                 message += f"\n[Voice Input]: {transcribed_text}"
                             else:
                                 message = transcribed_text
-                            original_user_message = transcribed_text  # Store for response
+                            original_user_message = transcribed_text
                         else:
-                            # Transcription failed or returned empty
-                            print("[CHAT] Warning: Audio transcription returned empty text.")
                             if not message:
-                                # If no text message was provided either, we can't just fail.
-                                # We'll add a placeholder so the user knows something happened but it failed.
                                 message = "[Audio received but transcription failed]"
                                 original_user_message = message
                     
                     except Exception as transcription_error:
-                        print(f"[CHAT] Transcription error: {type(transcription_error).__name__}: {str(transcription_error)}")
-                        import traceback
-                        print(f"[CHAT] Transcription stack trace:\n{traceback.format_exc()}")
-                        
-                        # Set error message for user
                         if not message:
                             message = f"[Audio transcription error: {str(transcription_error)}]"
                             original_user_message = message
-                else:
-                    print("[CHAT] Warning: Voice file is empty (0 bytes)")
-                    
+                
             except Exception as voice_read_error:
-                print(f"[CHAT] Error reading voice file: {type(voice_read_error).__name__}: {str(voice_read_error)}")
-                import traceback
-                print(f"[CHAT] Voice read stack trace:\n{traceback.format_exc()}")
+                # Log error but don't crash the whole request if possible
+                print(f"Error reading voice file: {voice_read_error}")
 
         if not message:
             raise HTTPException(status_code=400, detail="Message or voice input is required")

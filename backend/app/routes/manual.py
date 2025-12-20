@@ -14,6 +14,10 @@ from app.config import supabase
 from supabase import Client
 from datetime import datetime
 import os
+import logging
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 try:
     from langsmith import uuid7
@@ -40,6 +44,7 @@ async def generate_tool_manual(
     Generate a comprehensive tool manual.
     Can accept an image file for tool recognition OR direct tool name.
     """
+    logger.info(f"Manual generation request received. Tool: {tool_name}, Language: {language}, Audio: {generate_audio}")
 
     try:
         scan_id = None
@@ -63,8 +68,10 @@ async def generate_tool_manual(
             
             image_bytes = await file.read()
             recognized_name = recognize_tools_in_image(image_bytes)
+            logger.info(f"Image recognition result: {recognized_name}")
 
             if not recognized_name:
+                logger.warning("No tool recognized in the uploaded image")
                 raise HTTPException(status_code=404, detail="No tool found in the image.")
             
             final_tool_name = recognized_name
@@ -81,8 +88,9 @@ async def generate_tool_manual(
                     path=file_path,
                     file_options={"content-type": file.content_type}
                 )
+                logger.info(f"Image uploaded to Supabase: {file_path}")
             except Exception as e:
-                print(f"Failed to upload image to Supabase: {e}")
+                logger.error(f"Failed to upload image to Supabase: {e}")
                 # Continue without failing the whole request, but log it
 
         # 2. Validate Inputs if no file provided
@@ -103,6 +111,9 @@ async def generate_tool_manual(
             chat_res = supabase_client.table("chats").insert(chat_data).execute()
             if chat_res.data:
                 chat_id = chat_res.data[0]['id']
+                logger.info(f"New chat session created: {chat_id}")
+            else:
+                logger.error("Failed to create new chat session")
 
         # Save User Message
         user_content = f"Generate manual for {final_tool_name}"
@@ -114,17 +125,23 @@ async def generate_tool_manual(
         if file_path:
              image_url = supabase.storage.from_("tool-images").get_public_url(file_path)
 
-        supabase_client.table("messages").insert({
-            "chat_id": str(chat_id) if chat_id else None,
-            "role": "user",
-            "content": user_content,
-            "image_url": image_url # Assuming schema supports this, otherwise append to content
-        }).execute()
+        try:
+            supabase_client.table("messages").insert({
+                "chat_id": str(chat_id) if chat_id else None,
+                "role": "user",
+                "content": user_content,
+                "image_url": image_url # Assuming schema supports this, otherwise append to content
+            }).execute()
+            logger.info(f"User message saved to chat: {chat_id}")
+        except Exception as e:
+            logger.error(f"Failed to save user message: {e}")
 
 
         # 3. Perform Research (ALWAYS)
+        logger.info(f"Performing research for tool: {final_tool_name}")
         research_results = perform_tool_research(tool_name=final_tool_name)
         final_research_context = json.dumps(research_results.model_dump(mode='json'), indent=2)
+        logger.info("Research completed successfully")
 
         # 4. Save Scan Data (Research Result)
         # We save this for both image-based and text-based requests
@@ -135,27 +152,36 @@ async def generate_tool_manual(
             "image_path": file_path if file else None
         }
         
-        scan_response = supabase.table("scans").insert(scan_data).execute()
-        if scan_response.data:
-            scan_id = scan_response.data[0]['id']
-            # Update chat with scan_id
-            if chat_id:
-                 supabase_client.table("chats").update({"scan_id": scan_id}).eq("id", chat_id).execute()
+        try:
+            scan_response = supabase.table("scans").insert(scan_data).execute()
+            if scan_response.data:
+                scan_id = scan_response.data[0]['id']
+                logger.info(f"Scan data saved: {scan_id}")
+                # Update chat with scan_id
+                if chat_id:
+                     supabase_client.table("chats").update({"scan_id": scan_id}).eq("id", chat_id).execute()
+                     logger.info(f"Chat {chat_id} updated with scan_id {scan_id}")
+        except Exception as e:
+            logger.error(f"Failed to save scan data: {e}")
 
         # 5. Generate Manual
+        logger.info("Generating manual content...")
         manual = tool_manual_chain.generate_manual(
             tool_name=final_tool_name,
             research_context=final_research_context,
             tool_description=tool_description,
             language=language
         )
+        logger.info("Manual content generated")
         
         # 6. Generate Summary
+        logger.info("Generating summary...")
         summary = tool_manual_chain.generate_quick_summary(
             tool_name=final_tool_name,
             research_context=final_research_context,
             language=language
         )
+        logger.info("Summary generated")
 
         # Ensure summary and manual are never just empty or None
         if not summary or len(summary.strip()) < 5:
@@ -168,6 +194,7 @@ async def generate_tool_manual(
         # 7. Generate Audio (Optional)
         audio_files_data = None
         if generate_audio:
+            logger.info("Generating audio for summary...")
             try:
                 audio_url = audio_service.generate_audio(
                     text=summary,
@@ -179,7 +206,9 @@ async def generate_tool_manual(
                     "url": audio_url,
                     "generated_at": datetime.now().isoformat()
                 }
+                logger.info(f"Audio generated: {audio_url}")
             except Exception as e:
+                logger.error(f"Audio generation failed: {e}")
                 # Don't fail the request if audio fails
                 pass
 
@@ -197,8 +226,9 @@ async def generate_tool_manual(
         
         try:
             supabase.table("manuals").insert(manual_data).execute()
+            logger.info("Manual saved to database")
         except Exception as e:
-            print(f"Database insertion failed: {e}")
+            logger.error(f"Database insertion failed for manual: {e}")
             # Don't fail the whole request just because history saving failed
             pass
 
@@ -218,7 +248,11 @@ async def generate_tool_manual(
             "audio_url": audio_files_data['url'] if audio_files_data else None
         }
         
-        supabase_client.table("messages").insert(assistant_msg_data).execute()
+        try:
+            supabase_client.table("messages").insert(assistant_msg_data).execute()
+            logger.info("Assistant message saved to chat")
+        except Exception as e:
+            logger.error(f"Failed to save assistant message: {e}")
 
         return ManualGenerationResponse(
             tool_name=final_tool_name,
@@ -230,6 +264,8 @@ async def generate_tool_manual(
         )
         
     except HTTPException as e:
+        logger.error(f"HTTP Exception in manual generation: {e.detail}")
         raise e
     except Exception as e:
+        logger.error(f"Unexpected error in manual generation: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Manual generation error: {str(e)}")

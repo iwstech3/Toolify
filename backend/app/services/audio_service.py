@@ -114,13 +114,7 @@ class AudioService:
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str = "audio/mp3") -> str:
         """
         Transcribes audio using the Gemini API.
-
-        Args:
-            audio_bytes: The audio file content.
-            mime_type: The mime type of the audio file.
-
-        Returns:
-            The transcribed text.
+        Uses inline data for files < 15MB to bypass file upload/polling issues.
         """
         import logging
         logger = logging.getLogger(__name__)
@@ -129,31 +123,19 @@ class AudioService:
         uploaded_file_name = None
         
         try:
-            # Log input details
             audio_size = len(audio_bytes)
-            logger.info(f"[TRANSCRIBE] Starting transcription - Audio size: {audio_size} bytes, MIME type: {mime_type}")
-            print(f"[TRANSCRIBE] Starting transcription - Audio size: {audio_size} bytes, MIME type: {mime_type}")
-            
             if audio_size == 0:
-                logger.error("[TRANSCRIBE] Audio bytes are empty!")
-                print("[TRANSCRIBE] Error: Audio bytes are empty!")
+                logger.error("[TRANSCRIBE] Audio bytes are empty")
                 return ""
             
-            # Clean mime_type (remove parameters like ;codecs=opus)
+            # Clean mime_type
             base_mime_type = mime_type.split(';')[0].strip()
-            logger.info(f"[TRANSCRIBE] Base MIME type: {base_mime_type}")
-            
             prompt = "Transcribe the following audio exactly as spoken. Do not translate. Return only the transcription."
             
             # --- OPTION 1: Inline Data (for files < 15MB) ---
-            # This is more robust as it avoids the file upload/polling mechanism
             if audio_size < 15 * 1024 * 1024:
-                logger.info(f"[TRANSCRIBE] Using inline data for transcription (size: {audio_size} bytes)")
-                print(f"[TRANSCRIBE] Using inline data for transcription (size: {audio_size} bytes)")
-                
                 from google.genai import types
                 
-                # Robust generation with retries
                 max_gen_retries = 3
                 response = None
                 for attempt in range(max_gen_retries):
@@ -165,58 +147,35 @@ class AudioService:
                                 types.Part.from_bytes(data=audio_bytes, mime_type=base_mime_type)
                             ]
                         )
-                        logger.info(f"[TRANSCRIBE] Received response from Gemini API (inline)")
-                        print(f"[TRANSCRIBE] Received response from Gemini API (inline)")
-                        break # Success
+                        break
                     except Exception as api_error:
-                        is_last_attempt = (attempt == max_gen_retries - 1)
-                        error_type = type(api_error).__name__
-                        logger.warning(f"[TRANSCRIBE] Inline generation attempt {attempt+1} failed: {error_type}: {str(api_error)}")
-                        print(f"[TRANSCRIBE] Warning: Inline generation attempt {attempt+1} failed: {error_type}")
-                        
-                        if is_last_attempt:
-                            logger.error("[TRANSCRIBE] All inline generation retries failed. Falling back to file upload...")
-                            print("[TRANSCRIBE] Falling back to file upload...")
-                            response = None # Ensure we proceed to file upload fallback
+                        if attempt == max_gen_retries - 1:
+                            logger.error(f"[TRANSCRIBE] Inline generation failed after {max_gen_retries} attempts: {str(api_error)}")
                             break
-                        
-                        time.sleep(2 ** attempt) # Exponential backoff
+                        time.sleep(2 ** attempt)
                 
                 if response:
                     return self._process_transcription_response(response)
 
             # --- OPTION 2: File Upload (Fallback or for files >= 15MB) ---
-            logger.info("[TRANSCRIBE] Proceeding with file upload transcription...")
-            print("[TRANSCRIBE] Proceeding with file upload transcription...")
-            
-            # Determine extension from mime_type
             ext = ".mp3"
-            if "wav" in base_mime_type:
-                ext = ".wav"
-            elif "ogg" in base_mime_type:
-                ext = ".ogg"
-            elif "m4a" in base_mime_type or "mp4" in base_mime_type:
-                ext = ".m4a"
-            elif "aac" in base_mime_type:
-                ext = ".aac"
-            elif "webm" in base_mime_type:
-                ext = ".webm"
+            if "wav" in base_mime_type: ext = ".wav"
+            elif "ogg" in base_mime_type: ext = ".ogg"
+            elif "m4a" in base_mime_type or "mp4" in base_mime_type: ext = ".m4a"
+            elif "aac" in base_mime_type: ext = ".aac"
+            elif "webm" in base_mime_type: ext = ".webm"
             
-            # Create a temporary file to store the audio
             with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_audio:
                 temp_audio.write(audio_bytes)
                 temp_audio_path = temp_audio.name
             
-            # Upload the file to Gemini
             try:
                 uploaded_file = client.files.upload(file=temp_audio_path)
                 uploaded_file_name = uploaded_file.name
-                logger.info(f"[TRANSCRIBE] File uploaded successfully. Name: {uploaded_file_name}, State: {uploaded_file.state.name}")
             except Exception as upload_error:
                 logger.error(f"[TRANSCRIBE] File upload failed: {str(upload_error)}")
                 raise
             
-            # Wait for file to be processed (ACTIVE state)
             import time
             max_wait = 60
             wait_time = 0
@@ -229,7 +188,6 @@ class AudioService:
                 time.sleep(poll_interval)
                 wait_time += poll_interval
                 
-                # Robust polling with retries
                 max_retries = 3
                 for attempt in range(max_retries):
                     try:
@@ -239,7 +197,6 @@ class AudioService:
                         if attempt == max_retries - 1: raise
                         time.sleep(2 ** attempt)
             
-            # Generate content from file
             max_gen_retries = 3
             response = None
             for attempt in range(max_gen_retries):
@@ -258,12 +215,9 @@ class AudioService:
             return ""
             
         except Exception as e:
-            logger.error(f"[TRANSCRIBE] Fatal error: {type(e).__name__}: {str(e)}")
-            import traceback
-            logger.error(f"[TRANSCRIBE] Stack trace:\n{traceback.format_exc()}")
+            logger.error(f"[TRANSCRIBE] Fatal error: {str(e)}")
             return ""
         finally:
-            # Clean up
             if uploaded_file_name:
                 try: client.files.delete(name=uploaded_file_name)
                 except: pass
@@ -273,20 +227,13 @@ class AudioService:
 
     def _process_transcription_response(self, response) -> str:
         """Helper to extract text from Gemini response."""
-        import logging
-        logger = logging.getLogger(__name__)
         try:
             if hasattr(response, 'text') and response.text:
                 return response.text.strip()
-            
-            # Fallback to candidates
             if hasattr(response, 'candidates') and response.candidates:
                 return response.candidates[0].content.parts[0].text.strip()
-            
-            logger.warning(f"[TRANSCRIBE] No text found in response: {response}")
             return ""
-        except Exception as e:
-            logger.error(f"[TRANSCRIBE] Error processing response: {str(e)}")
+        except Exception:
             return ""
 
 
