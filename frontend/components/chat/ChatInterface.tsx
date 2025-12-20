@@ -594,13 +594,30 @@ export function ChatInterface() {
 
                           {/* Audio Player (Sent Audio - User only) */}
                           {message.audioUrl && message.role === "user" && (
-                            <div className="p-3 bg-muted/50 rounded-xl border border-border">
-                              <audio
-                                controls
-                                src={message.audioUrl}
-                                className="w-full max-w-sm"
-                                style={{ height: "40px" }}
-                              />
+                            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-xl border border-border w-fit">
+                              <button
+                                onClick={() =>
+                                  handlePlayAudio(
+                                    message.id,
+                                    message.content,
+                                    message.audioUrl
+                                  )
+                                }
+                                className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
+                                  playingMessageId === message.id
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-background text-foreground hover:bg-muted"
+                                }`}
+                              >
+                                {playingMessageId === message.id ? (
+                                  <StopCircle className="w-4 h-4" />
+                                ) : (
+                                  <Volume2 className="w-4 h-4" />
+                                )}
+                              </button>
+                              <div className="text-xs text-muted-foreground pr-2">
+                                Voice Message
+                              </div>
                             </div>
                           )}
 
