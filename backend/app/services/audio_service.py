@@ -124,8 +124,6 @@ class AudioService:
         """
         temp_audio_path = None
         try:
-            model = genai.GenerativeModel(settings.gemini_model)
-            
             # Determine extension from mime_type
             ext = ".mp3"
             if "wav" in mime_type:
