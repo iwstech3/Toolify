@@ -143,7 +143,7 @@ class AudioService:
                 temp_audio_path = temp_audio.name
 
             # Upload the file to Gemini
-            uploaded_file = client.files.upload(path=temp_audio_path)
+            uploaded_file = client.files.upload(file=temp_audio_path)
             
             prompt = "Transcribe the following audio exactly as spoken. Do not translate. Return only the transcription."
             

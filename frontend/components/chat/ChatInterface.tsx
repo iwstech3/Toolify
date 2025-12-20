@@ -187,7 +187,8 @@ export function ChatInterface() {
     const userMessage: Message = {
       id: tempId,
       role: "user",
-      content: messageToSend,
+      // Show "Transcribing..." if voice only, otherwise show the message
+      content: voice && !content ? "🎙️ Transcribing..." : messageToSend,
       imageUrl,
       audioUrl,
     };
