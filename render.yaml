@@ -15,7 +15,7 @@ services:
     # 🚨 SECURE CONFIGURATION: Only list the KEYS here 🚨
     envVars:
       # API Keys - Set values in Render Dashboard
-      - key: GOOGLE_API_KEY
+      - key: GOOGLE_API_KEYS
         sync: false
       - key: TAVILY_API_KEY
         sync: false
