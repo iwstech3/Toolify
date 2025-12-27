@@ -2,10 +2,12 @@ from google import genai
 from PIL import Image
 import io
 from typing import Optional
-from app.config import settings
+from typing import Optional
+from app.config import settings, gemini_client
 
 # Initialize Gemini Client
-client = genai.Client(api_key=settings.google_api_key)
+client = gemini_client
+
 
 def recognize_tools_in_image(image_bytes: bytes) -> Optional[str]:
     """

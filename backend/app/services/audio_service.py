@@ -3,10 +3,12 @@ import tempfile
 import requests
 from google import genai
 from datetime import datetime
-from app.config import settings
+from datetime import datetime
+from app.config import settings, gemini_client
 
 # Initialize Gemini Client
-client = genai.Client(api_key=settings.google_api_key)
+client = gemini_client
+
 
 # YarnGPT API Configuration
 YARNGPT_API_URL = "https://yarngpt.ai/api/v1/tts"
