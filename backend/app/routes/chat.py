@@ -55,23 +55,34 @@ async def chat(
         
         # Handle voice input
         if voice:
-            voice_bytes = await voice.read()
-            if voice_bytes:
-                transcribed_text = audio_service.transcribe_audio(voice_bytes, mime_type=voice.content_type or "audio/mp3")
-                if transcribed_text:
-                    if message:
-                        message += f"\n[Voice Input]: {transcribed_text}"
-                    else:
-                        message = transcribed_text
-                    original_user_message = transcribed_text  # Store for response
-                else:
-                    # Transcription failed or returned empty
-                    print("Warning: Audio transcription returned empty text.")
-                    if not message:
-                        # If no text message was provided either, we can't just fail.
-                        # We'll add a placeholder so the user knows something happened but it failed.
-                        message = "[Audio received but transcription failed]"
-                        original_user_message = message
+            try:
+                voice_bytes = await voice.read()
+                if voice_bytes:
+                    try:
+                        transcribed_text = audio_service.transcribe_audio(
+                            voice_bytes, 
+                            mime_type=voice.content_type or "audio/mp3"
+                        )
+                        
+                        if transcribed_text:
+                            if message:
+                                message += f"\n[Voice Input]: {transcribed_text}"
+                            else:
+                                message = transcribed_text
+                            original_user_message = transcribed_text
+                        else:
+                            if not message:
+                                message = "[Audio received but transcription failed]"
+                                original_user_message = message
+                    
+                    except Exception as transcription_error:
+                        if not message:
+                            message = f"[Audio transcription error: {str(transcription_error)}]"
+                            original_user_message = message
+                
+            except Exception as voice_read_error:
+                # Log error but don't crash the whole request if possible
+                print(f"Error reading voice file: {voice_read_error}")
 
         if not message:
             raise HTTPException(status_code=400, detail="Message or voice input is required")

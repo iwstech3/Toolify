@@ -45,6 +45,7 @@ class ManualGenerationResponse(BaseModel):
     audio_files: Optional[dict] = None 
     # pdf_url removed - PDF generation moved to frontend
     timestamp: datetime
+    session_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):

@@ -116,63 +116,127 @@ class AudioService:
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str = "audio/mp3") -> str:
         """
         Transcribes audio using the Gemini API.
-
-        Args:
-            audio_bytes: The audio file content.
-            mime_type: The mime type of the audio file.
-
-        Returns:
-            The transcribed text.
+        Uses inline data for files < 15MB to bypass file upload/polling issues.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         temp_audio_path = None
+        uploaded_file_name = None
+        
         try:
-            # Determine extension from mime_type
-            ext = ".mp3"
-            if "wav" in mime_type:
-                ext = ".wav"
-            elif "ogg" in mime_type:
-                ext = ".ogg"
-            elif "m4a" in mime_type or "mp4" in mime_type:
-                ext = ".m4a"
-            elif "aac" in mime_type:
-                ext = ".aac"
-            elif "webm" in mime_type:
-                ext = ".webm"
+            audio_size = len(audio_bytes)
+            if audio_size == 0:
+                logger.error("[TRANSCRIBE] Audio bytes are empty")
+                return ""
             
-            # Create a temporary file to store the audio
+            # Clean mime_type
+            base_mime_type = mime_type.split(';')[0].strip()
+            prompt = "Transcribe the following audio exactly as spoken. Do not translate. Return only the transcription."
+            
+            # --- OPTION 1: Inline Data (for files < 15MB) ---
+            if audio_size < 15 * 1024 * 1024:
+                from google.genai import types
+                
+                max_gen_retries = 3
+                response = None
+                for attempt in range(max_gen_retries):
+                    try:
+                        response = client.models.generate_content(
+                            model=settings.gemini_model,
+                            contents=[
+                                prompt,
+                                types.Part.from_bytes(data=audio_bytes, mime_type=base_mime_type)
+                            ]
+                        )
+                        break
+                    except Exception as api_error:
+                        if attempt == max_gen_retries - 1:
+                            logger.error(f"[TRANSCRIBE] Inline generation failed after {max_gen_retries} attempts: {str(api_error)}")
+                            break
+                        time.sleep(2 ** attempt)
+                
+                if response:
+                    return self._process_transcription_response(response)
+
+            # --- OPTION 2: File Upload (Fallback or for files >= 15MB) ---
+            ext = ".mp3"
+            if "wav" in base_mime_type: ext = ".wav"
+            elif "ogg" in base_mime_type: ext = ".ogg"
+            elif "m4a" in base_mime_type or "mp4" in base_mime_type: ext = ".m4a"
+            elif "aac" in base_mime_type: ext = ".aac"
+            elif "webm" in base_mime_type: ext = ".webm"
+            
             with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_audio:
                 temp_audio.write(audio_bytes)
                 temp_audio_path = temp_audio.name
-
-            # Upload the file to Gemini
-            uploaded_file = client.files.upload(file=temp_audio_path)
             
-            # Wait for file to be processed (ACTIVE state)
+            try:
+                uploaded_file = client.files.upload(file=temp_audio_path)
+                uploaded_file_name = uploaded_file.name
+            except Exception as upload_error:
+                logger.error(f"[TRANSCRIBE] File upload failed: {str(upload_error)}")
+                raise
+            
             import time
-            max_wait = 30  # Maximum 30 seconds
+            max_wait = 60
             wait_time = 0
+            poll_interval = 1
+            
             while uploaded_file.state.name != "ACTIVE":
                 if wait_time >= max_wait:
-                    raise Exception(f"File processing timeout. State: {uploaded_file.state.name}")
-                time.sleep(1)
-                wait_time += 1
-                uploaded_file = client.files.get(name=uploaded_file.name)
+                    raise Exception(f"File processing timeout after {max_wait}s")
+                
+                time.sleep(poll_interval)
+                wait_time += poll_interval
+                
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        uploaded_file = client.files.get(name=uploaded_file.name)
+                        break
+                    except Exception as poll_error:
+                        if attempt == max_retries - 1: raise
+                        time.sleep(2 ** attempt)
             
-            prompt = "Transcribe the following audio exactly as spoken. Do not translate. Return only the transcription."
+            max_gen_retries = 3
+            response = None
+            for attempt in range(max_gen_retries):
+                try:
+                    response = client.models.generate_content(
+                        model=settings.gemini_model,
+                        contents=[prompt, uploaded_file]
+                    )
+                    break
+                except Exception as api_error:
+                    if attempt == max_gen_retries - 1: raise
+                    time.sleep(2 ** attempt)
             
-            response = client.models.generate_content(
-                model=settings.gemini_model,
-                contents=[prompt, uploaded_file]
-            )
-            
-            return response.text.strip()
+            if response:
+                return self._process_transcription_response(response)
+            return ""
             
         except Exception as e:
-            print(f"Transcription Error: {e}")
+            logger.error(f"[TRANSCRIBE] Fatal error: {str(e)}")
             return ""
         finally:
-            # Clean up local temp file
+            if uploaded_file_name:
+                try: client.files.delete(name=uploaded_file_name)
+                except: pass
             if temp_audio_path and os.path.exists(temp_audio_path):
-                os.unlink(temp_audio_path)
+                try: os.unlink(temp_audio_path)
+                except: pass
+
+    def _process_transcription_response(self, response) -> str:
+        """Helper to extract text from Gemini response."""
+        try:
+            if hasattr(response, 'text') and response.text:
+                return response.text.strip()
+            if hasattr(response, 'candidates') and response.candidates:
+                return response.candidates[0].content.parts[0].text.strip()
+            return ""
+        except Exception:
+            return ""
+
 
 audio_service = AudioService()
